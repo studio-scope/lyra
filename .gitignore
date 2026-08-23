@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Local env
+.env
+.env.*
+!.env.example
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Local agent/editor scratch
+.claude/
+
+# Transient QA capture output. `docs/qa/before`, `docs/qa/after` and
+# `docs/qa/polish` are committed on purpose — they are the visual record of what
+# is locked. Anything written to `docs/qa/wip` is throwaway.
+docs/qa/wip/
+
+# Screen recordings
+*.mp4
+*.mov
+*.webm

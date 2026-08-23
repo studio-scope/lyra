@@ -1,0 +1,12 @@
+.canvasLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: var(--space-black);
+  /* The canvas never receives pointer input; the DOM layer owns interaction. */
+  pointer-events: none;
+}
+
+.canvasLayer canvas {
+  display: block;
+}

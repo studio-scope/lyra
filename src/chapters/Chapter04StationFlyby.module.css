@@ -1,0 +1,66 @@
+/* Left column: the station ring dominates the right half of the frame, and a
+   readout laid over it is unreadable. */
+.readout {
+  position: absolute;
+  left: var(--gutter);
+  top: 50%;
+  translate: 0 -50%;
+  width: min(21rem, 24vw);
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-bottom: 0.85rem;
+}
+
+.headingText {
+  font-family: var(--font-mono);
+  font-size: var(--step-label);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--off-white);
+}
+
+.scanLine {
+  display: block;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  transform-origin: left center;
+}
+
+.list {
+  margin: 0;
+  border-top: 1px solid var(--ui-line);
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--ui-line);
+}
+
+.rowLabel {
+  font-family: var(--font-mono);
+  font-size: var(--step-hud);
+  font-weight: 400;
+  letter-spacing: var(--track-hud);
+  text-transform: uppercase;
+  color: var(--muted-white);
+}
+
+.rowValue {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--step-label);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--off-white);
+  font-variant-numeric: tabular-nums;
+}

@@ -1,0 +1,43 @@
+.index {
+  position: absolute;
+  right: var(--gutter);
+  bottom: calc(var(--stage-inset-y) + 3rem);
+}
+
+.ticks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: flex-end;
+}
+
+.tickRow {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.tickTrack {
+  display: block;
+  width: 3.25rem;
+  height: 1px;
+  background: var(--ui-line);
+  position: relative;
+}
+
+.tickBar {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform-origin: right center;
+}
+
+.tickLabel {
+  font-family: var(--font-mono);
+  font-size: var(--step-hud);
+  font-weight: 500;
+  letter-spacing: var(--track-hud);
+  color: var(--off-white);
+  min-width: 7ch;
+  text-align: right;
+}

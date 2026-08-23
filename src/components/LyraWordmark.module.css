@@ -1,0 +1,27 @@
+.wordmark {
+  display: inline-block;
+  font-family: var(--font-wordmark);
+  font-weight: 700;
+  line-height: 0.9;
+  text-transform: uppercase;
+  /* Syncopate is drawn wide; -0.075em is what locks the four letters into a
+     single mass rather than four separate shapes. */
+  letter-spacing: -0.075em;
+  color: var(--off-white);
+  transform: scaleX(1.04);
+  transform-origin: center;
+  /* The negative tracking eats space after the final A; this puts it back so
+     the mark centres optically rather than mathematically. */
+  padding-right: 0.075em;
+  white-space: nowrap;
+}
+
+.hero {
+  font-size: var(--step-wordmark-lg);
+}
+
+/* Closing lockup. Sized to render ~333px wide at a 1440px viewport, which is
+   what gives it enough mass to sit above the headline in the hierarchy. */
+.cta {
+  font-size: clamp(3rem, 6.9vw, 6.4rem);
+}

@@ -1,0 +1,29 @@
+.mark {
+  position: absolute;
+  left: 50%;
+  /* Placed so the settled wordmark's baseline clears the can's top rim by
+     ~58px at 1440 x 900. `display: flex` removes the inline line-box strut, so
+     the span sits flush with this offset instead of ~18px below it. */
+  top: 8%;
+  display: flex;
+  transform-origin: center;
+  translate: -50% 0;
+  will-change: transform, opacity, filter;
+}
+
+.prompt {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--stage-inset-y) + 3.25rem);
+  translate: -50% 0;
+  text-align: center;
+}
+
+.promptText {
+  font-family: var(--font-mono);
+  font-size: var(--step-label);
+  font-weight: 400;
+  letter-spacing: var(--track-hud);
+  text-transform: uppercase;
+  color: var(--faint-white);
+}

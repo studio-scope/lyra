@@ -1,0 +1,74 @@
+/**
+ * LYRA design tokens.
+ * Mirrors src/config/colors.ts — keep the two in step.
+ */
+
+:root {
+  /* Ground */
+  --space-black: #020205;
+  --midnight-black: #05050b;
+  --off-white: #f2efe7;
+  --muted-white: rgba(242, 239, 231, 0.62);
+  --faint-white: rgba(242, 239, 231, 0.38);
+  --ui-line: rgba(242, 239, 231, 0.16);
+  --ui-line-strong: rgba(242, 239, 231, 0.32);
+
+  /* NOVA */
+  --nova-deep: #081a66;
+  --nova-cobalt: #2342ff;
+  --nova-ultraviolet: #6b3dff;
+  --nova-luminous: #a56bff;
+  --nova-core: #f1eeff;
+
+  /* COMET */
+  --comet-deep: #033e52;
+  --comet-cobalt: #0b7cff;
+  --comet-ultraviolet: #00d9ff;
+  --comet-luminous: #5fe9ff;
+  --comet-core: #ddfbff;
+
+  /* VOID */
+  --void-deep: #250036;
+  --void-cobalt: #7127ff;
+  --void-ultraviolet: #d628ff;
+  --void-luminous: #e778ff;
+  --void-core: #f6e8ff;
+
+  /* Active accent — swapped by the flavour attribute on <html>. */
+  --accent: var(--nova-luminous);
+  --accent-core: var(--nova-core);
+  --accent-deep: var(--nova-deep);
+
+  /* Type */
+  /* Primary brand wordmark only. HUD and body copy stay on Geist. */
+  --font-wordmark: 'Syncopate', 'Geist Sans', system-ui, sans-serif;
+  --font-sans: 'Geist Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Editorial rhythm, tuned for a 1440 × 900 recording viewport. */
+  --gutter: clamp(2rem, 5.2vw, 4.75rem);
+  --stage-inset-y: clamp(1.75rem, 3.4vh, 2.5rem);
+
+  --step-hud: 0.6875rem;
+  --step-label: 0.75rem;
+  --step-support: clamp(0.9375rem, 1.18vw, 1.0625rem);
+  --step-headline: clamp(2.25rem, 4.55vw, 4.1rem);
+  --step-headline-sm: clamp(1.75rem, 3.1vw, 2.75rem);
+  --step-wordmark: clamp(2.75rem, 5.6vw, 5rem);
+  --step-wordmark-lg: clamp(3.25rem, 7.4vw, 6.5rem);
+
+  --track-hud: 0.22em;
+  --track-label: 0.26em;
+}
+
+[data-flavor='comet'] {
+  --accent: var(--comet-luminous);
+  --accent-core: var(--comet-core);
+  --accent-deep: var(--comet-deep);
+}
+
+[data-flavor='void'] {
+  --accent: var(--void-luminous);
+  --accent-core: var(--void-core);
+  --accent-deep: var(--void-deep);
+}

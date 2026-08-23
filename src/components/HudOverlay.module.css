@@ -1,0 +1,83 @@
+.hud {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  padding: var(--stage-inset-y) var(--gutter);
+}
+
+.topLeft,
+.topRight,
+.bottomLeft,
+.bottomRight {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.topLeft {
+  top: var(--stage-inset-y);
+  left: var(--gutter);
+}
+
+.topRight {
+  top: var(--stage-inset-y);
+  right: var(--gutter);
+}
+
+.bottomLeft {
+  bottom: var(--stage-inset-y);
+  left: var(--gutter);
+}
+
+.bottomRight {
+  bottom: var(--stage-inset-y);
+  right: var(--gutter);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--step-hud);
+  font-weight: 500;
+  letter-spacing: var(--track-hud);
+  text-transform: uppercase;
+  color: var(--off-white);
+  font-variant-numeric: tabular-nums;
+}
+
+.monoMuted {
+  composes: mono;
+  font-weight: 400;
+  color: var(--muted-white);
+}
+
+.marker {
+  width: 5px;
+  height: 5px;
+  background: var(--accent);
+  /* A square, not a dot: this is a technical readout, not a status light. */
+  flex: none;
+}
+
+.divider {
+  width: 1px;
+  height: 0.75rem;
+  background: var(--ui-line);
+  flex: none;
+}
+
+.track {
+  position: relative;
+  display: block;
+  width: 5.5rem;
+  height: 1px;
+  background: var(--ui-line);
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  background: var(--off-white);
+  transform-origin: left center;
+}

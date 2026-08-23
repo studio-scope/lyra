@@ -1,0 +1,164 @@
+/**
+ * Shared chapter layout.
+ *
+ * All six stages live in one fixed layer above the canvas; the page's scroll
+ * length comes from a single spacer. Copy is placed in editorial blocks that
+ * keep clear of the central column the can occupies (roughly 42–58% of the
+ * viewport width).
+ */
+
+.spacer {
+  position: relative;
+  width: 100%;
+  pointer-events: none;
+}
+
+.chapterLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Full-bleed: chapter blocks anchor to the same --gutter as the HUD corners,
+   so every left edge on screen lines up. */
+.inner {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+/* ---- placement ------------------------------------------------------ */
+
+.blockTopCenter {
+  position: absolute;
+  left: 50%;
+  top: 13.5%;
+  translate: -50% 0;
+  text-align: center;
+  width: min(46rem, 56vw);
+}
+
+/* Column widths are capped in vw so the block never crosses into the central
+   column the can occupies. */
+.blockBottomLeft {
+  position: absolute;
+  left: var(--gutter);
+  /* Clears the bottom-left HUD anchor even with a three-line headline. */
+  bottom: calc(var(--stage-inset-y) + 4.25rem);
+  width: min(32rem, 33vw);
+}
+
+.blockLeft {
+  position: absolute;
+  left: var(--gutter);
+  top: 50%;
+  translate: 0 -50%;
+  width: min(30rem, 32vw);
+}
+
+.blockRight {
+  position: absolute;
+  right: var(--gutter);
+  top: 50%;
+  translate: 0 -50%;
+  width: min(30rem, 32vw);
+  text-align: right;
+}
+
+.blockCenter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.blockTopLeft {
+  position: absolute;
+  left: var(--gutter);
+  top: calc(var(--stage-inset-y) + 3.25rem);
+}
+
+/* ---- type ------------------------------------------------------------ */
+
+.chapterLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: var(--step-label);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--muted-white);
+}
+
+.chapterLabel::before {
+  content: '';
+  width: 1.75rem;
+  height: 1px;
+  background: var(--accent);
+}
+
+.headline {
+  margin-top: 1.5rem;
+  font-family: var(--font-sans);
+  font-size: var(--step-headline);
+  font-weight: 600;
+  line-height: 1.02;
+  letter-spacing: -0.028em;
+  text-transform: uppercase;
+  color: var(--off-white);
+  text-wrap: balance;
+}
+
+.headlineSmall {
+  composes: headline;
+  font-size: var(--step-headline-sm);
+  letter-spacing: -0.02em;
+}
+
+.support {
+  margin-top: 1.25rem;
+  font-size: var(--step-support);
+  line-height: 1.55;
+  color: var(--muted-white);
+  max-width: 34ch;
+}
+
+.supportRight {
+  composes: support;
+  margin-left: auto;
+}
+
+.flavorCode {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--step-label);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.rule {
+  width: 100%;
+  height: 1px;
+  margin-top: 1.75rem;
+  background: linear-gradient(90deg, var(--ui-line-strong), transparent);
+}
+
+.ruleRight {
+  composes: rule;
+  background: linear-gradient(270deg, var(--ui-line-strong), transparent);
+}
