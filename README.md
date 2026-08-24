@@ -15,9 +15,9 @@ imagery, no stock assets, no downloaded 3D models and no video.
 
 ## Current Project Status
 
-**Status date: 23 August 2026 — Phase 1 implemented.**
+**Status date: 24 August 2026 — Phase 2 complete. Open & Pour is integrated.**
 
-The current prototype contains:
+The site now runs end to end. There is no placeholder left in the scroll.
 
 - six scroll chapters;
 - one continuous procedural 3D can, mounted once and alive for the whole page;
@@ -25,13 +25,29 @@ The current prototype contains:
 - **Asteroid Run** — procedural asteroid field, curved flight path;
 - **Flavor Nebulas** — NOVA, COMET and VOID moments with warp transitions;
 - **Station Flyby** — procedural station ring with a staggered HUD readout;
-- **Open & Pour placeholder** — locked close-up plus the Phase 2 video slot;
+- **Open & Pour** — the lid mechanism opens a real aperture and hands over to a
+  scroll-scrubbed liquid plate;
 - **final CTA** — centred wordmark lockup;
 - a continuous flight trail that persists across every chapter;
 - procedural asteroids and station geometry;
 - coded label textures for NOVA, COMET and VOID;
-- debug tooling (`D` readout, `V` video bounds, `?capture=1` frame capture);
-- documented, intentionally empty asset placeholders.
+- debug tooling (`D` readout, `V` video bounds, `?capture=1` frame capture).
+
+### Lid mechanism (rebuilt)
+
+The can's opening hardware is real geometry, not a texture:
+
+- a **genuine drinking aperture** cut with `THREE.Shape.holes`, so the extruded
+  side walls become the aperture's cut edge and the visible sheet thickness;
+- a **dark interior shell** built from the body and base profiles, giving the
+  opening real depth to look into;
+- a **separate hinged flap** that breaks along the score and folds into the can,
+  staying attached for the whole travel;
+- a **rebuilt stay-tab** — stamped teardrop plate, narrow neck, one oval finger
+  opening, short formed nose — turning on a **fixed rivet**.
+
+Tab travel is 0 → 0.55 rad (31.5°); the flap follows to 1.15 rad (66°) once the
+nose has actually reached it, so the can reads as sealed until it is not.
 
 ---
 
@@ -82,8 +98,8 @@ Completed and visually verified at 1440 × 900:
   an oval finger opening, rotating ~31° about its rivet, with a scored panel
   that dents but never opens.
 
-**Not implemented:** no fluid simulation. Chapter 05 stops at the cut point and
-hands over to a placeholder plate.
+**Not implemented:** there is still no fluid simulation, and there is no need
+for one — Chapter 05 hands over to a pre-rendered plate at the cut point.
 
 ---
 
@@ -188,6 +204,8 @@ exists in a production build.
 | CTA liquid placeholder | `src/experience/environments/LiquidWave.tsx` |
 | Star layers | `src/experience/environments/StarLayers.tsx` |
 | Lyra constellation | `src/experience/environments/LyraConstellation.tsx` |
+| Open & Pour plate + scroll scrub | `src/chapters/Chapter05Release.tsx` |
+| Shipped plate | `public/assets/open-pour/open-pour-final.mp4` |
 | HUD | `src/components/HudOverlay.tsx` |
 | Wordmark component | `src/components/LyraWordmark.tsx` |
 | Debug panel | `src/components/DebugPanel.tsx` |
@@ -289,7 +307,7 @@ normally with all of them empty.
 | `public/assets/nebula-comet` | COMET environment plate | Background | 16:9 | 3840 × 2160 |
 | `public/assets/nebula-void` | VOID environment plate | Background | 16:9 | 3840 × 2160 |
 | `public/assets/station` | Station hull / panel detail | Reference | 1:1 | 2048 × 2048 |
-| `public/assets/open-pour` | Scroll-scrubbed Open & Pour video | Foreground video | 16:9 | 2560 × 1440, 30 fps |
+| ~~`public/assets/open-pour`~~ | **Filled** — `open-pour-final.mp4` | Foreground video | 16:10 | 1440 × 900, 24 fps |
 
 Nebula plates replace the procedural volumes in `NebulaVolume.tsx`, which is
 driven entirely by uniforms — swapping in textured plates is a fragment-shader
@@ -297,27 +315,50 @@ change, not a rewrite of the chapter.
 
 ---
 
-## Higgsfield Budget and Open & Pour
+## Open & Pour
 
-- **Approximately 104 Higgsfield credits remain.**
-- Those credits are **reserved for the final Open & Pour video**.
-- **Do not spend Higgsfield credits** on the logo, can design, nebula images,
-  asteroids or 3D can generation.
-- The coded Release section provides the **exact start-frame composition**.
-- The future video must preserve the **canonical VOID can** and match that start
-  frame exactly.
-- **No coded fluid simulation should be attempted.**
+Chapter 05 is finished. The sequence is: the tab lifts, the scored flap breaks
+and folds into the can revealing a real aperture, and a scroll-scrubbed plate
+carries violet zero-gravity liquid out of that opening and into the CTA.
 
-### Open & Pour: the exact start frame
+### Effects-only architecture
+
+This is the part worth understanding before touching anything here.
+
+**The live WebGL can is authoritative and always was.** The generated video is
+used *only* as a source of moving fluid. Every frame of the shipped plate is a
+composite of three layers:
+
+1. a still render of the live scene at the cut point — background, can, label,
+   lid, aperture, tab, rivet, particles;
+2. the violet liquid and a restrained pressure mist, extracted from the
+   generation with a temporal-difference matte plus hue, brightness and spatial
+   gates, then graded toward deep violet;
+3. the live can re-laid on top through a rendered foreground matte, so the real
+   tab and aperture edge keep occluding the fluid.
+
+Nothing generated survives into the plate: no AI can, lid, tab, rim, lettering,
+hallucinated text, duplicated starfield or background. The consequence is that
+branding, geometry, camera and framing were never at the mercy of the model —
+only the fluid performance was. That is what made a single 4.50-credit
+generation sufficient.
+
+The extracted fluid is aligned by **measuring its base and pinning it to the
+projected aperture**, with a time-varying offset that cancels the generation's
+own camera drift. It is scaled about that aperture anchor — never about the
+frame origin.
+
+### Scroll mapping
 
 `RELEASE_FRAMING` in `src/config/choreography.ts` is the single source of truth.
-The placeholder plate, the `V` debug overlay and this table all read from it.
+The chapter, the `V` debug overlay and this table all read from it.
 
 | | |
 | --- | --- |
-| **Cut point** | vh **1262** |
-| **Scrub range** | vh 1262 → 1320 (58 vh of scroll) |
-| **Plate** | 2560 × 1440, 16:9, 30 fps |
+| **Cut point** (`cutPointVh`) | vh **1262** — plate frame 0 |
+| **Video end** (`videoEndVh`) | vh **1310** — plate frame 72 |
+| **Hand-off end** (`scrubEndVh`) | vh **1320** — CTA entry |
+| **Plate** | 1440 × 900, 24 fps, 73 frames |
 | **Camera position** | `[0, 2.58, 3.42]` |
 | **Camera target** | `[0, 1.05, 0]` |
 | **Camera FOV** | 30° vertical |
@@ -325,37 +366,73 @@ The placeholder plate, the `V` debug overlay and this table all read from it.
 | **Can rotation Y** | 0.6204 rad (35.55°) off label-front |
 | **Can rotation X** | −0.05 rad |
 | **Can scale** | 1.0 |
-| **Stay-tab** | fully lifted (`tabLift = 1`), ~31° about the rivet |
-| **Scored panel** | dented, still closed |
+| **Stay-tab** | fully lifted (`tabLift = 1`), 31.5° about the rivet |
 | **Flavor** | VOID / 03 |
 
-The camera sits about 24° above the horizontal, looking down onto the lid so the
-scored panel and the raised tab are both in frame. **End-frame direction:** the
-pour continues downward and exits low in frame.
+Scroll maps linearly from vh 1262 → 1310 onto frames 0 → 72, quantised to the
+nearest source frame so a given scroll position always resolves to the same
+frame in both directions. `currentTime` is written imperatively from a ref; the
+video is **never played**. From vh 1310 to 1320 the plate holds on its last
+frame and fades while the CTA's `LiquidWave` rises, so the chapter never cuts
+from droplets to an empty scene.
 
-To capture the reference still: run the dev server, scroll to vh 1262 (`D` shows
-the exact position), press `V` to confirm the plate bounds, then turn both
-overlays off before recording.
+### Keyframes are not optional
+
+The plate is encoded **all-intra — every frame is an I-frame** (`-g 1
+-keyint_min 1 -sc_threshold 0`, CRF 17, H.264 High, `yuv420p`, `+faststart`).
+
+A normal long-GOP encode seeks to the nearest keyframe, which makes
+`currentTime` scrubbing stutter badly. An earlier composite of the same length
+had **1** I-frame in 73 frames and was unusable for scroll control. The file is
+larger as a result; that is the correct trade for a scrub-driven plate.
+
+### Higgsfield: closed
+
+- **80.00 credits remain.** No further generation is planned or needed.
+- Four probes were run, 19.50 credits total:
+
+| Probe | Config | Cost | Outcome |
+| --- | --- | --- | --- |
+| 01 | `kling3_0` std, start **+ end** image | 7.50 | Failed. Near-identical start and end frames collapsed the model into interpolation — no action at all. |
+| 02 | `kling3_0` std, start only | 7.50 | Action worked, but the can drifted 277 px down and the tab deformed. |
+| 03 | `kling3_0` std, 3 s, start only | 4.50 | Framing locked (4.5 px drift). Fluid too thin, too vertical, too pink. |
+| 04 | `kling3_0` std, 3 s, start only | 4.50 | **Shipped.** Broad asymmetric ribbon, deep violet, laterally varied droplets. |
+
+Rules that still hold: spend nothing on the logo, can design, nebula plates,
+asteroids or 3D can generation, and attempt no coded fluid simulation.
+
+### Capture path: a real trap
+
+`?capture=1` sets `frameloop="never"` and drives the renderer by hand. **Under
+load this fails silently.** If the Suspense boundary around the environment and
+the scene controller has not resolved when `advance()` is first called, every
+hand-driven frame renders into a drawing buffer that is never filled — and
+`toDataURL` happily returns a fully transparent PNG. It produced byte-identical
+31,418-byte "captures" while reporting success.
+
+For anything that matters, use the **live render loop** instead: load the site
+normally, hide the fixed DOM overlays, let the damping settle, and read the
+frame through `page.screenshot()`. Then **assert** the camera has actually
+landed on its keyframe before writing the file. Never trust a capture you have
+not checked the file size of.
 
 ---
 
-## Next Agent Instructions
+## Remaining Work
 
-1. Clone the repository and run it (`npm install`, `npm run dev`).
-2. **Read this README completely** before changing anything.
-3. Verify the current experience at **1440 × 900**, scrolling forward and back.
-4. **Do not redesign the locked wordmark or the can.** See *Locked Visual
-   Decisions*.
-5. Inspect the final scene compositions for each nebula moment (vh 500, 640,
-   770) and note the exact framing.
-6. Generate the three nebula backgrounds **from those exact compositions**.
-7. Integrate the nebula assets **without changing scroll timing** — replace the
-   `NebulaVolume` shader source, not the chapter.
-8. Lock the Release start frame (vh 1262) and capture it with `?capture=1`.
-9. Create the Open & Pour reference frames (start frame + end-frame direction).
-10. **Only then** use Higgsfield for the final video.
-11. Run final motion and performance QA (fast forward/backward scrub, FPS).
-12. Record the advertisement at 1440 × 900.
+1. **Final global UI and copy pass.** The corner HUD, chapter labels and support
+   copy are still the Phase 1 working text. This is the one deliberate piece of
+   unfinished presentation left.
+2. **The three nebula plates.** `NebulaVolume` is still driven by procedural
+   shader volumes — deliberately faint placeholders. Generating them means
+   inspecting the exact compositions at vh 500, 640 and 770 and replacing the
+   shader source, not the chapter. **Do not spend Higgsfield credits on these.**
+3. **Station panel detail.** The ring is geometry only.
+4. **Record the advertisement** at 1440 × 900, both overlays off.
+
+Before changing anything: read this README, run the site, and scroll Chapter 05
+forward *and* backward. Do not redesign the locked wordmark, the can or the
+rebuilt lid — see *Locked Visual Decisions*.
 
 ---
 
@@ -364,11 +441,18 @@ overlays off before recording.
 - **Nebulas are procedural placeholders** — deliberately faint shader volumes,
   meant to be replaced.
 - **The station is procedural** — geometry only, no panel texture yet.
-- **The Open & Pour video has not been generated.** Chapter 05 stops at the cut
-  point and hands over to a placeholder plate.
-- **There is no final liquid shot** and no fluid simulation.
+- **The Open & Pour plate is authored for 1440 × 900.** It is applied with
+  `object-fit: cover`, so the vertical framing survives on other aspect ratios
+  but the sides crop. It is a recording asset, not a responsive one.
+- **The plate is 2.9 MB** — a direct consequence of all-intra encoding. That is
+  intentional; see *Keyframes are not optional*.
+- **At the release camera's shallow angle you cannot see far into the can.** The
+  opened flap is present and correct but reads subtly at that elevation.
+- **`ReleaseParticles` seeds its positions with `Math.random()`**, so the
+  particle cue differs on every page load and QA captures of it are never
+  byte-identical.
 - **Desktop recording is prioritised** over full responsive production. Mobile
-  navigation was out of scope.
+  navigation was out of scope. Nothing here claims production responsiveness.
 - **The project is not deployed** as a production product.
 - A `THREE.Clock` deprecation warning appears in the console. It comes from
   inside `@react-three/fiber`, not from this codebase.

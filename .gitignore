@@ -25,7 +25,14 @@ Thumbs.db
 # is locked. Anything written to `docs/qa/wip` is throwaway.
 docs/qa/wip/
 
-# Screen recordings
+# Review packages: these only bundle files that already live in the repo or are
+# deliberately ignored, so committing them would duplicate megabytes for nothing.
+docs/qa/**/*.zip
+
+# Screen recordings, probe generations and QA composites. The only video the
+# site actually ships is the Open & Pour plate, which is a real production
+# asset rather than a recording, so it is committed explicitly.
 *.mp4
 *.mov
 *.webm
+!public/assets/open-pour/open-pour-final.mp4

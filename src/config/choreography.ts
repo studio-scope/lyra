@@ -385,6 +385,13 @@ export const RELEASE_FRAMING = {
   cutPointVh: 1262,
   scrubStartVh: 1262,
   scrubEndVh: 1320,
+  /**
+   * Where the clip reaches its last frame. The remaining 10 vh up to
+   * `scrubEndVh` are the hand-off: the plate holds on frame 72 and fades while
+   * the CTA's liquid field rises, so the chapter never cuts from droplets to an
+   * empty scene.
+   */
+  videoEndVh: 1310,
   camera: { position: [0, 2.58, 3.42] as [number, number, number], fov: 30 },
   cameraTarget: [0, 1.05, 0] as [number, number, number],
   can: {
@@ -395,8 +402,12 @@ export const RELEASE_FRAMING = {
     scale: 1,
     tabLift: 1,
   },
-  /** Video plate spec - see README "Phase 2 asset slots". */
-  plate: { aspect: '16:9', width: 2560, height: 1440, fps: 30 },
+  /**
+   * The delivered plate. Authored as a 1600x900 master and cropped to the
+   * project's 1440x900 recording viewport; every frame is a keyframe so the
+   * scroll scrub can seek anywhere without waiting on a GOP.
+   */
+  plate: { aspect: '16:10', width: 1440, height: 900, fps: 24, frames: 73 },
 } as const;
 
 /** Flash pulses: [centre vh, rise, fall, strength]. */

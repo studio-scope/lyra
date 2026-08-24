@@ -2,19 +2,26 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'rea
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import {
+  APERTURE_HINGE_Z,
   BASE_PROFILE,
   BODY_PROFILE,
   LABEL,
   LID_PROFILE,
   LID_Y,
-  PANEL_Y,
+  PANEL_BREAK_AT,
+  PANEL_MAX_ROTATION,
+  PANEL_RECESS,
   RIM_PROFILE,
-  SCORE_Y,
+  TAB_MAX_ROTATION,
+  buildCavityShell,
   buildLathe,
-  buildOpeningPanel,
-  buildScoreLine,
+  buildLidTop,
+  buildPanelFlap,
+  buildRivet,
+  buildScoreRing,
   buildStayTab,
 } from './canProfile';
+import { clamp01, smoothstep } from '../../config/easing';
 import {
   bodyColours,
   createBrushedRoughness,
@@ -62,11 +69,16 @@ export const CanModel = forwardRef<CanHandle, Props>(function CanModel({ flavor 
       base: buildLathe(BASE_PROFILE, 160),
       body: buildLathe(BODY_PROFILE, 160),
       rim: buildLathe(RIM_PROFILE, 160),
+      // The countersink ring; the flat plate that carries the aperture is
+      // separate, because a lathe cannot express a hole.
       lid: buildLathe(LID_PROFILE, 160),
+      lidTop: buildLidTop(),
       label: new THREE.CylinderGeometry(LABEL.radius, LABEL.radius, LABEL.height, 160, 1, true),
       tab: buildStayTab(),
-      panel: buildOpeningPanel(),
-      score: buildScoreLine(),
+      rivet: buildRivet(),
+      panel: buildPanelFlap(),
+      score: buildScoreRing(),
+      cavity: buildCavityShell(),
     }),
     [],
   );
@@ -138,25 +150,41 @@ export const CanModel = forwardRef<CanHandle, Props>(function CanModel({ flavor 
       roughness: 0.28,
       envMapIntensity: 0.9,
     });
-    // The scored panel and its score line are coplanar with the lid, so both
-    // carry a polygon offset. Without it they z-fight the lid and vanish, and
-    // the panel would disappear underneath it the moment it is pressed.
+    // The scored flap is the same sheet as the lid. It needs no polygon offset
+    // any more: it sits inside a real hole, a hair below the lid surface.
     const panel = new THREE.MeshPhysicalMaterial({
-      color: '#2A2A33',
+      color: '#33333D',
       metalness: 0.88,
-      roughness: 0.56,
-      envMapIntensity: 0.6,
-      polygonOffset: true,
-      polygonOffsetFactor: -2,
-      polygonOffsetUnits: -2,
+      roughness: 0.54,
+      envMapIntensity: 0.7,
     });
-    // The score line has to stay visible against the lid, or the opening reads
-    // as a smudge rather than a scored panel.
+    // Freshly cut aluminium on the aperture wall. Brighter than the lid so the
+    // opening reads as a real edge with thickness behind it.
+    const cutEdge = new THREE.MeshPhysicalMaterial({
+      color: '#B6B6C4',
+      metalness: 0.95,
+      roughness: 0.22,
+      envMapIntensity: 1,
+    });
+    // Score line. It sits physically above the lid, so no offset trickery.
     const score = new THREE.MeshBasicMaterial({
       color: '#141419',
-      polygonOffset: true,
-      polygonOffsetFactor: -4,
-      polygonOffsetUnits: -4,
+      side: THREE.DoubleSide,
+    });
+    /*
+     * The inside of the can. `BackSide`, because we are looking at the inner
+     * face of a shell.
+     *
+     * Deliberately unlit. There is no shadow map in this scene, so a lit
+     * material here receives the full product key as though the lid were not
+     * above it — and because the lid around it is metal, and metal has almost
+     * no diffuse, a lit cavity comes out *brighter* than the lid it is cut
+     * into. The opening then reads as a pale patch instead of a hole. An unlit
+     * near-black is the honest stand-in for the shadow the scene cannot cast.
+     */
+    const interior = new THREE.MeshBasicMaterial({
+      color: '#0C0C12',
+      side: THREE.BackSide,
     });
 
     // Printed sleeve. `roughness` and `metalness` both sit at 1 so the
@@ -172,7 +200,18 @@ export const CanModel = forwardRef<CanHandle, Props>(function CanModel({ flavor 
       envMapIntensity: 0.95,
     });
 
-    return { aluminium, rimMetal, lidMetal, tabMetal, rivetMetal, panel, score, label };
+    return {
+      aluminium,
+      rimMetal,
+      lidMetal,
+      tabMetal,
+      rivetMetal,
+      panel,
+      cutEdge,
+      score,
+      interior,
+      label,
+    };
   }, [brushed]);
 
   useEffect(() => () => Object.values(materials).forEach((m) => m.dispose()), [materials]);
@@ -209,14 +248,17 @@ export const CanModel = forwardRef<CanHandle, Props>(function CanModel({ flavor 
         return groupRef.current;
       },
       setTabLift(v: number) {
+        const lift = clamp01(v);
         // Pure rotation about the rivet — no translation at all, so the tab
         // pivots on the lid the way a real stay-tab does instead of rising off
-        // it. 0.55 rad is 31.5 degrees at full lift.
-        if (tabRef.current) tabRef.current.rotation.x = v * 0.55;
-        // The nose dents the scored panel by roughly two degrees — enough to
-        // read as pressed, small enough that the panel stays inside the lid
-        // dish instead of sinking under it. Phase 1 stops here: it never opens.
-        if (panelRef.current) panelRef.current.rotation.x = v * 0.038;
+        // it.
+        if (tabRef.current) tabRef.current.rotation.x = lift * TAB_MAX_ROTATION;
+        // The flap holds still until the nose has travelled far enough to
+        // actually reach it, so the closed can shows nothing but a score line.
+        // After that the score breaks and the flap swings down into the can on
+        // its hinge, opening the aperture for good.
+        const press = smoothstep(PANEL_BREAK_AT, 1, lift);
+        if (panelRef.current) panelRef.current.rotation.x = press * PANEL_MAX_ROTATION;
       },
       setOpacity(v: number) {
         if (Math.abs(v - opacityRef.current) < 0.001) return;
@@ -252,16 +294,39 @@ export const CanModel = forwardRef<CanHandle, Props>(function CanModel({ flavor 
         rotation={[0, Math.PI, 0]}
       />
 
-      {/* Scored opening panel: flush with the lid, hinged at its inner edge so
-          the tab's nose can depress it. The score line stays with the lid — it
-          is the outline the panel is pressed into, not part of the panel. */}
-      <group ref={panelRef} position={[0, PANEL_Y, 0]}>
+      {/* Flat lid plate carrying the drinking aperture as genuine negative
+          space. Two material groups: the sheet faces, then the cut wall the
+          extrusion leaves around the hole. */}
+      <mesh
+        geometry={geometries.lidTop}
+        material={[materials.lidMetal, materials.cutEdge]}
+        position={[0, LID_Y, 0]}
+      />
+
+      {/* The can's dark inside, which is what makes the aperture read as a
+          hole rather than a black shape painted on the lid. */}
+      <mesh geometry={geometries.cavity} material={materials.interior} />
+
+      {/* Scored flap. It plugs the aperture from just below the lid surface,
+          then hinges on the aperture's near edge and folds into the can. It
+          stays attached for the whole travel. */}
+      <group ref={panelRef} position={[0, LID_Y - PANEL_RECESS, APERTURE_HINGE_Z]}>
         <mesh geometry={geometries.panel} material={materials.panel} />
       </group>
+
+      {/* Score line, a hair proud of the lid so it never z-fights. */}
       <mesh
         geometry={geometries.score}
         material={materials.score}
-        position={[0, SCORE_Y, 0]}
+        position={[0, LID_Y + 0.0006, 0]}
+      />
+
+      {/* Rivet: fixed to the lid, not to the tab, so it stays upright while the
+          tab turns around it. Its head caps the tab's rivet hole. */}
+      <mesh
+        geometry={geometries.rivet}
+        material={materials.rivetMetal}
+        position={[0, LID_Y + 0.006, 0]}
       />
 
       {/* Stay-tab. The group sits on the rivet, so `rotation.x` swings the
@@ -269,11 +334,7 @@ export const CanModel = forwardRef<CanHandle, Props>(function CanModel({ flavor 
           never leaves the lid. */}
       <group ref={tabRef} position={[0, LID_Y, 0]}>
         <mesh geometry={geometries.tab} material={materials.tabMetal} />
-        <mesh position={[0, 0.012, 0]} material={materials.rivetMetal}>
-          <cylinderGeometry args={[0.026, 0.03, 0.026, 20]} />
-        </mesh>
       </group>
-
     </group>
   );
 });
