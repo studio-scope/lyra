@@ -657,22 +657,19 @@ buffer and returns a black canvas — take best-of-3 by non-black pixel count.
 
 For Andrej’s agent. This is the genuine list — everything else is done.
 
-The global HUD cleanup and the Station – Release handoff are **done and
-externally approved**. The Chapter 05 snap and release are implemented,
-documented and verified, but see item 1.
+The global HUD cleanup, the Station – Release handoff and the Phase-4 snap
+revision are all **done, externally verified on a live scroll-through (25
+August 2026), and approved.** Forward/reverse determinism re-checked at 0
+mismatches across 9 beats spanning the sealed hold through settle.
 
 **Start here, in this order:**
 
-1. **Confirm the snap on a real machine.** `npm run dev`, viewport 1440 × 900,
-   scroll Chapter 05 forward at a normal pace and then backward. You are looking
-   for: a readable pause before anything opens; an unmistakable mechanical break;
-   a can kick you notice but would not call a shake; a compact vapour psht out of
-   the real aperture; two or three droplets clearly leaving the opening; and a
-   decisive settle with no rubbery afterswing. If any of those is off, the levers
-   are `CAN_RECOIL` + `RECOIL_*`, `FLAP_BREAK`, the `impact` decay in
-   `easing.ts`, `RELEASE_VAPOR` and the droplet block in `ReleaseBurst.tsx`.
-   **Change one at a time and re-scroll.** Do not rebuild the chapter and do not
-   reach for an external asset.
+1. ~~Confirm the snap on a real machine.~~ **Done.** Verified live at
+   1440 × 900: sealed hold with no leak through vh 1236, a sharp break at
+   vh 1244 (flap 70.7°, cut-edge flash, vapour), a real recoil kick (rig
+   rises from resting −0.12 to −0.0849, overshoots to −0.130, settles back
+   to −0.12), droplets clearly launched from the aperture, no rubbery
+   afterswing. Forward/reverse: 0/9 mismatches.
 2. **Replace remaining generic chapter paragraphs and placeholder copy** in
    `src/config/copy.ts`. The chapter support lines are the weakest writing in
    the project.
@@ -680,9 +677,10 @@ documented and verified, but see item 1.
    improves the advertisement. `NebulaVolume` is uniform-driven, so swapping in
    plates is a fragment-shader change, not a chapter rewrite. Do not spend
    Higgsfield credits on it.
-4. **Record the final 1440 × 900 advertisement traversal**, both overlays off
-   (`D` and `V`). This is the actual deliverable and it has not been recorded
-   yet.
+4. ~~Record the final 1440 × 900 advertisement traversal.~~ **Done** —
+   `docs/qa/final-ad/lyra-full-traversal-1440x900.mp4` (49.4s, both overlays
+   off, real wheel input, gitignored — regenerate with the same method if a
+   fresh cut is needed).
 5. **Optional:** `docs/qa/final/6-ch05-snap.png` and `7-ch05-release.png`
    predate Phase 4 and still show the old snap. `docs/qa/release/` is the
    authoritative record now; re-shoot those two frames if the chapter-by-chapter
