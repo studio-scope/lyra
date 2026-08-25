@@ -137,6 +137,13 @@ export const TAB_MAX_ROTATION = 0.55;
  * flap clearly hangs inside the can rather than merely denting.
  */
 export const PANEL_MAX_ROTATION = 1.15;
+
+/**
+ * How far the sealed flap bows *outward* under full tab tension, in radians.
+ * A fifth of a degree — invisible as a pose, readable as pressure once the
+ * strip light rakes across it, and it makes the snap that follows land.
+ */
+export const PANEL_PRELOAD = 0.0038;
 /**
  * Normalised tab lift at which the nose has actually reached the flap. Below
  * this the aperture stays sealed, which is what keeps the closed state clean.

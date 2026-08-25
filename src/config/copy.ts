@@ -4,8 +4,7 @@ export const COPY = {
   brand: 'LYRA',
 
   hud: {
-    system: 'LYRA SYSTEM',
-    progress: 'SCROLL',
+    system: 'LYRA ENERGY',
   },
 
   ignition: {

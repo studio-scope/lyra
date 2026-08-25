@@ -15,7 +15,8 @@ imagery, no stock assets, no downloaded 3D models and no video.
 
 ## Current Project Status
 
-**Status date: 25 August 2026 — Phase 3 complete. Chapter 05 is native.**
+**Status date: 25 August 2026 — Phase 4 complete. Chapter 05 is native,
+polished and approved.**
 
 The site runs end to end. There is no placeholder left in the scroll and the
 page ships **no video at all**.
@@ -32,10 +33,15 @@ page ships **no video at all**.
 - a continuous flight trail that persists across every chapter;
 - coded label textures for NOVA, COMET and VOID;
 - scroll pacing calibrated with `SCROLL_DISTANCE_SCALE = 1.75`;
+- a two-corner global HUD — brand label and progress meter, nothing else;
 - debug tooling (`D` readout, `V` release annotation, `?capture=1`).
 
 Chapters 01–04 remain the **approved procedural implementation** and were not
-touched by Phase 3.
+touched by Phase 3 or Phase 4.
+
+Phase 4 was one scoped visual-polish pass over three things only: the global
+corner HUD, the Station – Release handoff, and the can-opening snap and
+release. It is complete and externally approved.
 
 ### The external-video approach was rejected
 
@@ -63,8 +69,9 @@ The can's opening hardware is real geometry, not a texture:
 - a **rebuilt stay-tab** — stamped teardrop plate, narrow neck, one oval finger
   opening, short formed nose — turning on a **fixed rivet**.
 
-Tab travel is 0 → 0.55 rad (31.5°); the flap follows to 1.15 rad (66°) once the
-nose has actually reached it, so the can reads as sealed until it is not.
+Tab travel is 0 → 0.55 rad (31.5°); the flap follows to 1.15 rad (65.9°) once
+the score gives way, so the can reads as sealed until it is not. Both overshoot
+slightly at the break and settle — see *The mechanical sequence*.
 
 ---
 
@@ -95,6 +102,25 @@ These are **approved**. Do not casually redesign them.
   sequence, no canvas capture, no AI-generated can — unless the owners
   explicitly reopen that decision.
 
+### HUD rules
+
+The global HUD has **two anchors, not four**, and the empty corners are the
+design, not an omission:
+
+| Corner | Content |
+| --- | --- |
+| Top-left | `LYRA ENERGY` — mono, uppercase, tracked. The only identity in the HUD. |
+| Top-right | **Empty.** The old `04 / 06` chapter counter was removed. |
+| Bottom-left | **Empty.** The old flavour/status readout was removed. |
+| Bottom-right | Progress meter: a 7.5rem rule with a scroll-driven fill, then the percentage. The word `SCROLL` was removed and the rule widened from 5.5rem to carry the corner alone. |
+
+Do not populate the empty corners for symmetry. The chapter counter and the
+flavour readout duplicated what the chapter copy and the can already say, and
+the whitespace frames the composition better than more mono type would.
+
+The HUD fades up with the first stars (vh 4–26) and is driven by Motion values,
+so it never triggers a React render.
+
 ---
 
 ## Latest Refinement
@@ -116,8 +142,21 @@ Completed and visually verified at 1440 × 900:
 - **corrected hero wordmark separation and blur** — 57.8 px of clearance above
   the can's top rim, blur exactly 0 at settle;
 - **realistic attached stay-tab and scored opening panel** — teardrop plate with
-  an oval finger opening, rotating ~31° about its rivet, with a scored panel
-  that dents but never opens.
+  an oval finger opening, rotating ~31° about its rivet.
+
+Phase 4 added, on top of that:
+
+- **global HUD reduced to two corners** (see *HUD rules*);
+- **Station – Release continuity** — the station ring now eases out *behind* the
+  can (presence 1050 – 1186) while the camera push-in is split into an
+  ease-in / accelerate / settle arc at 1104 and 1126, instead of the ring
+  vanishing at the chapter boundary on the camera’s biggest move;
+- **the liquid rope removed** — the swept `TubeGeometry` is gone. The release is
+  now a compact lobed body on the lip plus independent straight droplet
+  trajectories;
+- **a mechanical snap** — a dead hold before the break, a 6 vh break, matched
+  tab and flap overshoot, a sharper can recoil, and the cut-edge flash and
+  pressure ring peaking on the same frame the score parts.
 
 **Not implemented:** there is no fluid simulation and there is no need for one.
 Chapter 05 is authored motion — keyframed tracks driving procedural geometry —
@@ -219,7 +258,7 @@ exists in a production build.
 | Product light layer constant | `src/experience/productLayer.ts` |
 | Flight trail | `src/experience/effects/FlightTrail.tsx` |
 | Warp / flash overlay | `src/experience/effects/WarpField.tsx` |
-| Release particles | `src/experience/effects/ReleaseParticles.tsx` |
+| Release particles (chapter-agnostic sparks) | `src/experience/effects/ReleaseParticles.tsx` |
 | **Native release: pressure, vapour, liquid, droplets** | `src/experience/effects/ReleaseBurst.tsx` |
 | Asteroid field | `src/experience/environments/AsteroidField.tsx` |
 | Station ring | `src/experience/environments/StationRing.tsx` |
@@ -400,16 +439,38 @@ All of it is scroll-driven. The tab and the flap are driven by **separate**
 tracks: deriving one from the other forces the break to inherit the tab’s
 pacing, and the break has to be far faster than the lift that causes it.
 
+These are the shipped numbers. Every one of them is a keyframe in
+`src/config/choreography.ts`.
+
 | Beat | vh | What happens |
 | --- | --- | --- |
-| Sealed hold | 1152 – 1189 | Nothing moves. Internal pressure glow only. |
-| Tab tension | 1189 – 1233 | `TAB_LIFT` 0 → 1 (0 → 27.4°) over 44 vh. Flap stays sealed. |
-| **Snap** | 1233 – 1247 | `FLAP_BREAK` fires over 14 vh, 0.8° → 66°, on the `impact` easing — a damped spring that overshoots ~12% (peak 72.5°) and rings down to 65.9°. |
-| Reaction | 1245 – 1268 | `CAN_RECOIL` (≈3 px on screen, counter-settling through zero), `CUT_EDGE_FLASH` on the aperture’s cut edge, and a compact radial pressure ring. |
-| Release | 1253 – 1320 | Vapour, a short tapered liquid stem and 9 irregular droplets, decaying into the CTA. |
+| Sealed hold | 1150 – 1192 | Camera arrives and settles. Nothing on the lid moves. |
+| **A — Tension** | 1192 – 1234 | `TAB_LIFT` 0 → 1 (0 → 31.5°) over 42 vh. The flap stays sealed and *preloads* 0.0038 rad (0.22°) the wrong way under tab tension — derived from the tab, so it needs no track of its own and unwinds exactly on reverse scroll. |
+| Dead hold | 1234 – 1242 | **Nothing moves at all for 8 vh.** Tab, flap and camera are static; only `RELEASE_PRESSURE` keeps creeping (0.91 → 1.0). This pause is what makes the break land. |
+| **B — Snap** | 1242 – 1248 | `FLAP_BREAK` fires over **6 vh** through the `impact` easing: 0 → 72.3° peak (+6.4° overshoot at 1243.7) → one ~0.45° counter → 65.9°. `CUT_EDGE_FLASH` and the pressure ring both peak on **1242**, the exact vh the score parts. `CAN_RECOIL` peaks at 1244 (≈4.7 px on screen). The tab jumps to 33.25° (+1.7°) at 1245. |
+| Settle | 1248 – 1258 | Tab counters to 31.2° and returns; the can recoil swings through zero and is done by 1258. The camera does not move for any of this. |
+| **C — Release** | 1246 – 1318 | `RELEASE_FLOW` 1246 – 1312 and `RELEASE_PRESENCE` 1246 – 1318. The body swells, breaks into droplets and is dissipating before the CTA takes over at 1320. |
 
-`impact` lives in `src/config/easing.ts` and deliberately returns values above
-1 mid-flight. That is the point: it is a mechanical break, not an ease.
+Supporting tracks: `RELEASE_SHOCK` 1242 – 1268 (the value is the ring’s
+*expansion*, and `ReleaseBurst` fades it as `(1 - shock)^2`, so the ring is
+brightest and tightest at 1242), `RELEASE_VAPOR` 1242 – 1276 with a 3 vh attack,
+and one scene-wide exposure pulse centred on **1245**. That pulse is deliberately
+*not* on 1242: at the snap frame it evaluates to exactly zero, so the break reads
+as a hard local flash on the metal against black, and the scene-wide lift belongs
+to what escapes, one beat later.
+
+`impact` lives in `src/config/easing.ts`, is used by the flap and nothing else,
+and deliberately returns values above 1 mid-flight. That is the point: it is a
+mechanical break, not an ease. Its decay term is `-7.6`, tuned so the panel takes
+a single ~6.4° overshoot and a half-degree counter. At the original `-6` it
+overshot ~12% and swung twice, which on a 66° travel reads as rubber rather than
+as 0.2 mm aluminium.
+
+**The break is roughly one wheel notch wide.** At 1440 × 900 with
+`SCROLL_DISTANCE_SCALE = 1.75` the page is 21,938 px, so one logical vh is 15.99
+px and the 6 vh break is 96 px. Measured in Chrome with real wheel input, that
+window is sampled at a median step of **0.25 vh** — the snap is not skipped. Do
+not compress it further.
 
 ### The native effects
 
@@ -417,17 +478,33 @@ pacing, and the break has to be far faster than the lift that causes it.
 so it stays welded to the real aperture whatever the can does. It contains:
 
 - a **pressure ring** and an under-flap glow, both shader quads;
-- **vapour** as a `Points` system, each point carrying its own direction and
-  falloff so there is no circular sprite boundary and nothing reads as smoke;
-- the **liquid stem** as a `TubeGeometry` along a `CatmullRomCurve3` rising out
-  of the aperture. Indices run path-first, so `setDrawRange` reveals it along
-  the path rather than fading it in;
-- **9 droplets** in one `InstancedMesh`, each with its own launch moment, size,
-  aspect, spin and normalised divergence direction.
+- **vapour** as a 34-point `Points` system, each point carrying its own
+  direction and falloff so there is no circular sprite boundary and nothing
+  reads as smoke. A quarter of the points are bright micro-droplets rather than
+  mist. The *first* puff runs a third hotter than the dispersed cloud it becomes
+  — keyed off the mist’s own expansion rather than off scroll position, so the
+  boost is spent by the time the cloud has opened up;
+- a **single lobed body** — an `IcosahedronGeometry(1, 4)` displaced along vertex
+  direction only, so shared vertices stay welded, then scaled broader than tall
+  and pushed off-axis. Peak diameter ≈0.21 against a 1.112 can body: about 19%,
+  and nowhere near wide enough to cover the lid. It swells out of the opening and
+  collapses as the droplets carry the volume away;
+- **11 droplets** in one `InstancedMesh`, each with its own launch moment, size,
+  aspect, tumble, spin and straight trajectory out of the aperture. The three
+  that launch first run 14–26% larger — applied by launch order, not by index,
+  so the extra weight always lands on the leading edge of the burst.
+
+**Shape rule: there is no path and no tube.** An earlier build swept a
+`TubeGeometry` along a long spline, which read as a rope with the droplets strung
+along it like berries on a stem. That geometry is deleted. Nothing shares a curve
+now, so nothing can line up into a strand.
 
 Everything originates at `APERTURE`, inside the opening — never above or beside
-it. The stem is deliberately short (`CORE_MAX_U = 0.26`) with a hard taper so
-it reads as a surge feeding a burst, not as one long rope.
+it. Motion is zero-gravity: a droplet decelerates only enough to stay in frame,
+and nothing pours downward.
+
+All particle layout comes from a seeded `mulberry32` PRNG (seed `0x1e5a`).
+Nothing is randomised per render, so the burst is identical on every reload.
 
 ### Two invariants you must not break
 
@@ -443,14 +520,29 @@ it reads as a surge feeding a burst, not as one long rope.
 truth for the release camera: position `[0, 2.58, 3.42]`, target `[0, 1.05, 0]`,
 FOV 30°, can at `[0, -0.12, 0]`, rotation Y 0.6204 rad, flavor VOID / 03.
 
-### Higgsfield: closed
+### No external asset is used in Chapter 05
 
-**80.00 credits remain and must not be spent casually.** Four probes were run
-during Phase 2 for 19.50 credits total; that work is superseded and its output
-is no longer used by the site. Do not reopen generation for the logo, the can
-design, the nebula plates, the asteroids or a 3D can — and not for Chapter 05,
-whose external-video approach was explicitly rejected. Reopening Higgsfield is
-an owner decision, not an implementation detail.
+Stated plainly, because this was reopened once already:
+
+- **No `<video>` element, no MP4, no WebM, no image sequence, no canvas capture,
+  no baked plate, no sprite sheet.**
+- **No Higgsfield asset and no Higgsfield call.** Nothing in Chapter 05 was
+  generated by Higgsfield, Nano Banana or any other model.
+- The tab, flap, cut edge, pressure ring, vapour, liquid body and every droplet
+  are **procedural geometry and shaders**, driven by the scroll tracks in
+  `src/config/choreography.ts`.
+- Nothing autoplays. There is no timer and no clock: every value is a pure
+  function of scroll position.
+
+The Phase 2 probe stills that were still sitting in `docs/qa/higgsfield/` have
+been deleted — the site uses none of it and their presence contradicted the
+architecture. They remain recoverable from git history.
+
+**80.00 Higgsfield credits remain and must not be spent casually.** Four probes
+were run during Phase 2 for 19.50 credits total. Do not reopen generation for the
+logo, the can design, the nebula plates, the asteroids or a 3D can — and not for
+Chapter 05, whose external-video approach was explicitly rejected. Reopening
+Higgsfield is an owner decision, not an implementation detail.
 
 ### Capture path: a real trap
 
@@ -473,24 +565,22 @@ buffer and returns a black canvas — take best-of-3 by non-black pixel count.
 
 For Aleksa’s agent. This is the genuine list — everything else is done.
 
-1. **Final judgment and polish of the Chapter 05 snap and liquid release.**
-   The sequence is structurally correct, deterministic and reversible. What is
-   left is taste: whether the snap reads sharply enough and whether the liquid
-   holds up as a hero moment at full size. Adjust `ReleaseBurst.tsx` parameters
-   and the `FLAP_BREAK` / `CUT_EDGE_FLASH` / `RELEASE_*` tracks. **Do not**
-   rebuild the chapter or reach for an external asset.
-2. **Global HUD and corner-copy cleanup.** Still Phase 1 working text:
-   - top-left should become a purposeful identity such as `LYRA ENERGY`;
-   - top-right may remain empty;
-   - bottom-left should remain empty unless it gains a real function;
-   - bottom-right keeps the progress meter, but the word `SCROLL` should go.
-3. **Replace remaining generic chapter paragraphs and placeholder copy** in
-   `src/config/copy.ts`.
-4. **Optional** nebula and station detail polish — only if it materially
+The Chapter 05 snap and release, and the global HUD cleanup, are **done and
+externally approved**. They are no longer open work.
+
+1. **Replace remaining generic chapter paragraphs and placeholder copy** in
+   `src/config/copy.ts`. The chapter support lines are the weakest writing in
+   the project.
+2. **Optional** nebula and station detail polish — only if it materially
    improves the advertisement. `NebulaVolume` is uniform-driven, so swapping in
    plates is a fragment-shader change, not a chapter rewrite. Do not spend
    Higgsfield credits on it.
-5. **Record the final 1440 × 900 advertisement traversal**, both overlays off.
+3. **Record the final 1440 × 900 advertisement traversal**, both overlays off.
+   This is the actual deliverable and it has not been recorded yet.
+4. **Optional:** `docs/qa/final/6-ch05-snap.png` and `7-ch05-release.png`
+   predate Phase 4 and still show the old snap. `docs/qa/release/` is the
+   authoritative record now; re-shoot those two frames if the chapter-by-chapter
+   overview matters.
 
 Before changing anything: read this README, run the site, and scroll Chapter 05
 forward *and* backward. Do not redesign the locked wordmark, the can, the
@@ -526,23 +616,35 @@ rebuilt lid or the scroll calibration — see *Locked Visual Decisions*.
 
 | Path | What it shows |
 | --- | --- |
-| `docs/qa/final/` | The shipped state: hero, asteroid run, a flavor nebula, station flyby, Chapter 05 before/snap/release, CTA. **Start here.** |
+| `docs/qa/release/` | **The Phase 4 snap and release — start here for Chapter 05.** `traverse-1190-1325.gif` is the whole beat: 76 frames, 1.8 vh apart. Then `01-tension-1238`, `02-snap-1242`, `03-snap-plus2-1244`, `04-burst-1266`. |
+| `docs/qa/release/05-reverse-sealed-1180` + `06-forward-1180` | vh 1180 reached by scrubbing *back* from 1305, and by driving *forward* from 1090. The two files are **byte-identical** — same SHA-256. That is the reversibility proof. |
+| `docs/qa/polish/x1..x4` | The Station – Release handoff: the ring still visible behind the can at 1126 and 1150. |
+| `docs/qa/polish/release-1..3` | The snap **before** the Phase 4 micro-polish, kept as the before side of the comparison. |
+| `docs/qa/final/` | The whole site, chapter by chapter. Its two Chapter 05 frames predate Phase 4. |
 | `docs/qa/scroll-distance/` | The corrected scroll traversal — 16 logical checkpoints across the whole timeline. |
 | `docs/qa/after/` | The can/packaging refinement, including `neutral-*` renders proving the three flavors are distinct under plain white light. |
 | `docs/qa/before/` | The state before that refinement. |
 
-Screen recordings are gitignored (`*.mp4`, `*.webm`) and live only on the
-machine that made them; the checkpoint stills are committed.
-`docs/qa/higgsfield/` holds the superseded Phase 2 probe work and is **not**
-part of the handoff — the site no longer uses any of it.
+Screen recordings are gitignored (`*.mp4`, `*.webm`) and live only on the machine
+that made them; the checkpoint stills are committed. `docs/qa/wip/` is gitignored
+throwaway.
 
 ---
 
 ## Handoff
 
 **25 August 2026.** The repository is in a safe, documented, pushed state.
-Chapters 01–06 all work, Chapter 05 is native, scroll pacing is calibrated and
-approved, and `tsc -b` and `npm run build` both pass clean.
+Chapters 01–06 all work, Chapter 05 is native, polished and externally approved,
+the global HUD is down to two corners, scroll pacing is calibrated and approved,
+and `tsc -b` and `npm run build` both pass clean.
+
+Phase 4 changed nine source files and nothing else: `src/App.tsx`,
+`src/components/HudOverlay.tsx`, `src/components/HudOverlay.module.css`,
+`src/config/copy.ts`, `src/config/choreography.ts`, `src/config/easing.ts`,
+`src/experience/can/canProfile.ts`, `src/experience/can/CanModel.tsx` and
+`src/experience/effects/ReleaseBurst.tsx`. No chapter range moved, `TOTAL_VH` and
+`SCROLL_DISTANCE_SCALE` were not touched, and no camera keyframe outside the
+Station – Release handoff changed.
 
 Higgsfield holds **80 credits**. Do not use them casually: the external-video
 approach it was bought for has been rejected, and reopening that decision

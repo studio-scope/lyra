@@ -14,47 +14,20 @@ import { clamp01, smoothstep } from '../../config/easing';
  *
  * The release lives in can space, mounted inside the can's rig, so it stays
  * welded to the real aperture no matter what the can is doing.
+ *
+ * **Shape rule:** there is no path and no tube. An earlier build swept a
+ * TubeGeometry along a long spline, which read as a rope with the droplets
+ * strung along it like berries on a stem. Here the body is one compact lobed
+ * mass sitting on the opening, and every droplet flies its own straight
+ * trajectory out of the aperture. Nothing shares a curve, so nothing can line
+ * up into a strand.
  */
 
 /** Mouth of the real aperture, in can-local space. */
 const APERTURE = new THREE.Vector3(0, LID_Y, 0.1526);
 
-/**
- * The path the release follows: a loose asymmetric S rising out of the
- * opening. Deliberately short — the top of frame at this camera sits around
- * y = 1.99 in world space, and the rig offsets the can down by 0.12, so the
- * last control point still leaves roughly 100px of headroom at 1440x900.
- */
-const PATH_POINTS = [
-  new THREE.Vector3(0.0, 1.222, 0.15),
-  new THREE.Vector3(0.03, 1.286, 0.176),
-  new THREE.Vector3(0.078, 1.352, 0.166),
-  new THREE.Vector3(0.096, 1.424, 0.118),
-  new THREE.Vector3(0.056, 1.5, 0.076),
-  new THREE.Vector3(-0.02, 1.566, 0.078),
-  new THREE.Vector3(-0.078, 1.628, 0.132),
-  new THREE.Vector3(-0.062, 1.69, 0.196),
-];
-
-const TUBULAR_SEGMENTS = 112;
-const RADIAL_SEGMENTS = 14;
-/** The core form only occupies the lower part of the path; droplets go on. */
-const CORE_MAX_U = 0.26;
-const DROPLET_COUNT = 9;
-
-/**
- * Core radius along the path. It has to start narrow enough to pass through
- * the aperture (half-width 0.10), swell into a readable body, then taper.
- * Peak diameter is ~0.148 against a 1.112 can body — about 13%, inside the
- * 18% ceiling and well clear of a mushroom silhouette.
- */
-function coreRadius(u: number) {
-  // Widest just above the lip, then a fast taper: a surge leaving the can,
-  // not a cable of constant section.
-  const t = clamp01(u / CORE_MAX_U);
-  const swell = Math.pow(Math.sin(Math.PI * Math.pow(t, 0.38)), 1.5);
-  return 0.009 + 0.04 * swell;
-}
+const DROPLET_COUNT = 11;
+const VAPOR_COUNT = 34;
 
 /** Deterministic PRNG — the release must be identical on every reload. */
 function mulberry32(seed: number) {
@@ -65,6 +38,16 @@ function mulberry32(seed: number) {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+/**
+ * The main mass: swells out of the opening, then collapses as the droplets
+ * carry the volume away. Peaks early and is gone well before the CTA.
+ */
+function bodyScale(flow: number) {
+  const rise = smoothstep(0, 0.16, flow);
+  const fall = 1 - smoothstep(0.34, 0.78, flow);
+  return rise * fall;
 }
 
 const shockVertex = /* glsl */ `
@@ -111,7 +94,7 @@ const glowFragment = /* glsl */ `
 `;
 
 /**
- * Pressure vapour. Fine points rather than a sprite cloud: each one carries its
+ * Pressure mist. Fine points rather than a sprite cloud: each one carries its
  * own direction and falls off on its own curve, so there is no circular sprite
  * boundary anywhere and nothing reads as generic smoke.
  */
@@ -129,10 +112,10 @@ const vaporVertex = /* glsl */ `
     vDrop = aDrop;
     // Hard initial expansion, then almost nothing: escaping pressure, not wind.
     float t = pow(clamp(uProgress, 0.0, 1.0), 0.42);
-    vec3 p = position + aDir * t * (0.055 + aSeed * 0.17);
+    vec3 p = position + aDir * t * (0.04 + aSeed * 0.13);
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     gl_Position = projectionMatrix * mv;
-    float size = mix(2.4 + aSeed * 3.6, 1.2 + aSeed * 1.0, aDrop);
+    float size = mix(2.0 + aSeed * 3.0, 1.1 + aSeed * 0.9, aDrop);
     gl_PointSize = size * uPixelRatio * (9.0 / max(0.8, -mv.z));
   }
 `;
@@ -147,7 +130,7 @@ const vaporFragment = /* glsl */ `
   void main() {
     vec2 d = gl_PointCoord - 0.5;
     float r = length(d) * 2.0;
-    // Soft for vapour, tight for a micro-droplet.
+    // Soft for mist, tight for a micro-droplet.
     float soft = pow(clamp(1.0 - r, 0.0, 1.0), mix(2.4, 1.15, vDrop));
     if (soft < 0.01) discard;
     vec3 colour = mix(uVapor, uDroplet, vDrop);
@@ -156,8 +139,6 @@ const vaporFragment = /* glsl */ `
     gl_FragColor = vec4(colour, a);
   }
 `;
-
-const VAPOR_COUNT = 22;
 
 export interface ReleaseBurstHandle {
   update(
@@ -171,73 +152,91 @@ export interface ReleaseBurstHandle {
 
 export const ReleaseBurst = forwardRef<ReleaseBurstHandle>(function ReleaseBurst(_, ref) {
   const groupRef = useRef<THREE.Group>(null);
-  const coreRef = useRef<THREE.Mesh>(null);
+  const bodyRef = useRef<THREE.Mesh>(null);
   const dropsRef = useRef<THREE.InstancedMesh>(null);
   const shockRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.Mesh>(null);
   const vaporRef = useRef<THREE.Points>(null);
 
   const built = useMemo(() => {
-    const curve = new THREE.CatmullRomCurve3(PATH_POINTS, false, 'catmullrom', 0.4);
+    const rand = mulberry32(0x1e5a);
 
-    /* ---- core form ------------------------------------------------- */
-    // Built at unit radius, then each ring is scaled to the profile. Doing it
-    // once on the CPU keeps the shader stock, so the liquid lights and
-    // reflects exactly like the can does.
-    const core = new THREE.TubeGeometry(curve, TUBULAR_SEGMENTS, 1, RADIAL_SEGMENTS, false);
-    const pos = core.getAttribute('position') as THREE.BufferAttribute;
-    const centre = new THREE.Vector3();
-    const vertex = new THREE.Vector3();
-    for (let i = 0; i <= TUBULAR_SEGMENTS; i++) {
-      const u = i / TUBULAR_SEGMENTS;
-      curve.getPointAt(u, centre);
-      const r = coreRadius(u);
-      for (let j = 0; j <= RADIAL_SEGMENTS; j++) {
-        const index = i * (RADIAL_SEGMENTS + 1) + j;
-        vertex.fromBufferAttribute(pos, index).sub(centre).multiplyScalar(r).add(centre);
-        pos.setXYZ(index, vertex.x, vertex.y, vertex.z);
+    /* ---- the fluid body -------------------------------------------- */
+    // A lobed, deliberately off-centre mass. Displacement is a function of the
+    // vertex direction alone, so shared vertices stay welded and the silhouette
+    // is identical on every run.
+    const body = new THREE.IcosahedronGeometry(1, 4);
+    {
+      const pos = body.getAttribute('position') as THREE.BufferAttribute;
+      const v = new THREE.Vector3();
+      for (let i = 0; i < pos.count; i++) {
+        v.fromBufferAttribute(pos, i).normalize();
+        const d =
+          1 +
+          0.22 * Math.sin(2.7 * v.x + 1.1) * Math.cos(2.1 * v.z) +
+          0.15 * Math.sin(3.9 * v.y + 0.6) +
+          0.09 * Math.cos(5.3 * v.x + 2.4) * Math.sin(4.1 * v.z);
+        v.multiplyScalar(d);
+        // Broader than tall, and pushed off-axis: a surge leaning out of the
+        // opening rather than a symmetric fountain head.
+        v.x *= 1.18;
+        v.y *= 0.78;
+        v.z *= 1.06;
+        pos.setXYZ(i, v.x, v.y, v.z);
       }
+      pos.needsUpdate = true;
+      body.computeVertexNormals();
     }
-    pos.needsUpdate = true;
-    core.computeVertexNormals();
-    // Indices run along the path, so a draw range reveals the form growing out
-    // of the aperture rather than fading in as a whole.
-    const indicesPerRing = RADIAL_SEGMENTS * 6;
-    const coreIndexCount = core.getIndex()!.count;
 
     /* ---- droplets --------------------------------------------------- */
     const droplet = new THREE.IcosahedronGeometry(1, 2);
-    const rand = mulberry32(0x1e5a);
     const drops = Array.from({ length: DROPLET_COUNT }, (_, i) => {
       // Three size classes, then broken up so no two read as twins.
       const cls = i % 3;
-      const base = cls === 0 ? 0.014 : cls === 1 ? 0.028 : 0.046;
+      const base = cls === 0 ? 0.013 : cls === 1 ? 0.024 : 0.038;
+
+      // Its own straight trajectory out of the mouth. Biased upward, but with
+      // enough lateral spread that the field opens into a cone instead of a
+      // column — and asymmetric, so one side throws further than the other.
+      const azimuth = rand() * Math.PI * 2;
+      const lateral = 0.34 + rand() * 0.85;
+      const bias = 0.28 * Math.cos(azimuth); // breaks the symmetry
+      const dir = new THREE.Vector3(
+        Math.cos(azimuth) * lateral + bias,
+        0.72 + rand() * 0.85,
+        Math.sin(azimuth) * lateral * 0.82 + 0.12,
+      ).normalize();
+
       return {
-        launch: 0.015 + rand() * 0.3,
-        startU: 0.07 + rand() * 0.13,
-        travel: 0.5 + rand() * 0.46,
-        size: base * (0.7 + rand() * 0.62),
+        launch: rand() * 0.24,
+        dir,
+        speed: 0.2 + rand() * 0.44,
+        size: base * (0.72 + rand() * 0.6),
         aspect: new THREE.Vector3(
           0.86 + rand() * 0.3,
           1.04 + rand() * 0.26,
           0.86 + rand() * 0.3,
         ),
-        // Its own divergence direction, biased sideways and forward. Without
-        // this every droplet rides the same curve and they read as berries on
-        // a stem rather than a field opening out in zero gravity.
-        dir: new THREE.Vector3(
-          (rand() - 0.5) * 2,
-          (rand() - 0.5) * 0.5,
-          (rand() - 0.5) * 2.4,
-        ).normalize(),
-        spreadAmp: 0.07 + rand() * 0.23,
-        driftAmp: 0.012 + rand() * 0.03,
-        driftFreq: 0.9 + rand() * 1.9,
+        wobbleAmp: 0.008 + rand() * 0.02,
+        wobbleFreq: 1.1 + rand() * 2.2,
         phase: rand() * Math.PI * 2,
-        spin: new THREE.Vector3(rand() - 0.5, rand() - 0.5, rand() - 0.5).multiplyScalar(2.4),
+        spin: new THREE.Vector3(rand() - 0.5, rand() - 0.5, rand() - 0.5).multiplyScalar(2.6),
         tilt: new THREE.Euler(rand() * Math.PI, rand() * Math.PI, rand() * Math.PI),
       };
     });
+
+    // The first drops out of the aperture are the ones the pressure actually
+    // threw, so they run a little heavier than the ones that merely follow.
+    // Applied to whichever three the seeded layout launched first rather than
+    // to fixed indices, so the weight always lands on the leading edge of the
+    // burst. Sizes only — count, speed, direction and lifetime are untouched,
+    // so the field is no taller, no fuller and no longer than it was.
+    [...drops]
+      .sort((a, b) => a.launch - b.launch)
+      .slice(0, 3)
+      .forEach((d, rank) => {
+        d.size *= 1.26 - rank * 0.06;
+      });
 
     /* ---- shared liquid material ------------------------------------- */
     // Deep violet body with a cobalt sheen at grazing angles and a hard
@@ -276,7 +275,7 @@ export const ReleaseBurst = forwardRef<ReleaseBurstHandle>(function ReleaseBurst
       blending: THREE.AdditiveBlending,
     });
 
-    /* ---- pressure vapour --------------------------------------------- */
+    /* ---- pressure mist ----------------------------------------------- */
     const vaporPositions = new Float32Array(VAPOR_COUNT * 3);
     const vaporDirs = new Float32Array(VAPOR_COUNT * 3);
     const vaporSeeds = new Float32Array(VAPOR_COUNT);
@@ -284,18 +283,18 @@ export const ReleaseBurst = forwardRef<ReleaseBurstHandle>(function ReleaseBurst
     for (let i = 0; i < VAPOR_COUNT; i++) {
       // Born inside the aperture's mouth, not on a ring around it.
       const a = rand() * Math.PI * 2;
-      const r = Math.sqrt(rand()) * 0.028;
+      const r = Math.sqrt(rand()) * 0.026;
       vaporPositions[i * 3] = APERTURE.x + Math.cos(a) * r;
       vaporPositions[i * 3 + 1] = LID_Y + 0.004;
       vaporPositions[i * 3 + 2] = APERTURE.z + Math.sin(a) * r * 0.8;
       // Directional: up and out of the opening, with a real spread.
       const sa = rand() * Math.PI * 2;
-      const spread = 0.35 + rand() * 0.75;
+      const spread = 0.4 + rand() * 0.8;
       vaporDirs[i * 3] = Math.cos(sa) * spread;
       vaporDirs[i * 3 + 1] = 1.0 + rand() * 0.7;
       vaporDirs[i * 3 + 2] = Math.sin(sa) * spread * 0.85;
       vaporSeeds[i] = rand();
-      // A quarter of them are bright micro-droplets rather than vapour.
+      // A quarter of them are bright micro-droplets rather than mist.
       vaporDrop[i] = rand() < 0.27 ? 1 : 0;
     }
     const vaporGeometry = new THREE.BufferGeometry();
@@ -303,7 +302,7 @@ export const ReleaseBurst = forwardRef<ReleaseBurstHandle>(function ReleaseBurst
     vaporGeometry.setAttribute('aDir', new THREE.BufferAttribute(vaporDirs, 3));
     vaporGeometry.setAttribute('aSeed', new THREE.BufferAttribute(vaporSeeds, 1));
     vaporGeometry.setAttribute('aDrop', new THREE.BufferAttribute(vaporDrop, 1));
-    vaporGeometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 1.4, 0.15), 2);
+    vaporGeometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 1.35, 0.15), 1.2);
     const vaporMaterial = new THREE.ShaderMaterial({
       vertexShader: vaporVertex,
       fragmentShader: vaporFragment,
@@ -333,10 +332,7 @@ export const ReleaseBurst = forwardRef<ReleaseBurstHandle>(function ReleaseBurst
     });
 
     return {
-      curve,
-      core,
-      coreIndexCount,
-      indicesPerRing,
+      body,
       droplet,
       drops,
       liquid,
@@ -354,7 +350,7 @@ export const ReleaseBurst = forwardRef<ReleaseBurstHandle>(function ReleaseBurst
 
   useEffect(
     () => () => {
-      built.core.dispose();
+      built.body.dispose();
       built.droplet.dispose();
       built.liquid.dispose();
       built.shockGeometry.dispose();
@@ -390,59 +386,68 @@ export const ReleaseBurst = forwardRef<ReleaseBurstHandle>(function ReleaseBurst
         // scrubbing forward did.
         built.liquid.opacity = 0.94 * presence;
 
-        /* ---- core form: grows out of the aperture, then hands over ---- */
-        const core = coreRef.current;
-        if (core) {
-          const reveal = clamp01(flow / CORE_MAX_U);
-          const rings = Math.round(reveal * TUBULAR_SEGMENTS);
-          const count = Math.min(built.coreIndexCount, rings * built.indicesPerRing);
-          built.core.setDrawRange(0, count);
-          core.visible = count > 0 && presence > 0.003;
+        /* ---- fluid body: swells on the lip, then gives way ------------ */
+        const body = bodyRef.current;
+        if (body) {
+          const s = bodyScale(flow);
+          // Peak diameter ~0.21 against a 1.112 can body: about 19%. Slightly
+          // broader than the aperture it is coming out of, and nowhere near
+          // wide enough to cover the lid.
+          const r = 0.094 * s;
+          body.scale.set(r * 1.1, r, r);
+          // Rises just clear of the lip as it expands — it is leaving the can,
+          // not sitting on it.
+          body.position.set(
+            APERTURE.x + 0.012 * s,
+            LID_Y + 0.012 + flow * 0.055,
+            APERTURE.z + 0.008 * s,
+          );
+          body.visible = s > 0.004 && presence > 0.003;
         }
 
-        /* ---- droplets ------------------------------------------------ */
+        /* ---- droplets: each on its own straight trajectory ------------ */
         const drops = dropsRef.current;
         if (drops) {
           drops.visible = presence > 0.003;
-          {
-            const { dummy, point, curve } = built;
-            for (let i = 0; i < DROPLET_COUNT; i++) {
-              const d = built.drops[i];
-              // Each droplet launches at its own moment and decelerates hard —
-              // pressure-driven impulse, then suspension. No gravity term.
-              const t = clamp01((flow - d.launch) / Math.max(0.08, 1 - d.launch));
-              const eased = 1 - Math.pow(1 - t, 2.7);
-              const u = Math.min(0.999, d.startU + eased * d.travel);
-              curve.getPointAt(u, point);
+          const { dummy, point } = built;
+          for (let i = 0; i < DROPLET_COUNT; i++) {
+            const d = built.drops[i];
+            const t = clamp01((flow - d.launch) / Math.max(0.1, 1 - d.launch));
+            // Near-linear: zero gravity, so once a droplet is out it keeps
+            // going. Just enough deceleration to keep the field in frame.
+            const eased = 1 - Math.pow(1 - t, 1.35);
+            const travel = eased * d.speed;
 
-              // Divergence grows faster than travel, so the field fans open as
-              // it decelerates rather than staying strung along one line.
-              point.addScaledVector(d.dir, Math.pow(eased, 1.25) * d.spreadAmp);
-              const drift = eased * d.driftAmp;
-              point.x += Math.sin(eased * d.driftFreq + d.phase) * drift;
-              point.z += Math.cos(eased * d.driftFreq * 0.78 + d.phase) * drift * 0.72;
+            point.copy(APERTURE).addScaledVector(d.dir, travel);
+            // A little tumble on the way out, so the field is not a clean fan.
+            const wobble = eased * d.wobbleAmp;
+            point.x += Math.sin(eased * d.wobbleFreq + d.phase) * wobble;
+            point.z += Math.cos(eased * d.wobbleFreq * 0.78 + d.phase) * wobble * 0.72;
 
-              dummy.position.copy(point);
-              dummy.rotation.set(
-                d.tilt.x + d.spin.x * eased,
-                d.tilt.y + d.spin.y * eased,
-                d.tilt.z + d.spin.z * eased,
-              );
-              // Pop in over the first slice of travel so nothing appears fully
-              // formed out of nowhere.
-              const s = d.size * smoothstep(0, 0.16, t);
-              dummy.scale.set(s * d.aspect.x, s * d.aspect.y, s * d.aspect.z);
-              dummy.updateMatrix();
-              drops.setMatrixAt(i, dummy.matrix);
-            }
-            drops.instanceMatrix.needsUpdate = true;
+            dummy.position.copy(point);
+            dummy.rotation.set(
+              d.tilt.x + d.spin.x * eased,
+              d.tilt.y + d.spin.y * eased,
+              d.tilt.z + d.spin.z * eased,
+            );
+            // Pop in over the first slice of travel so nothing appears fully
+            // formed out of nowhere, and thin out again as the field spends
+            // itself before the CTA.
+            const life = smoothstep(0, 0.14, t) * (1 - smoothstep(0.72, 1, t));
+            const s = d.size * life;
+            dummy.scale.set(s * d.aspect.x, s * d.aspect.y, s * d.aspect.z);
+            dummy.updateMatrix();
+            drops.setMatrixAt(i, dummy.matrix);
           }
+          drops.instanceMatrix.needsUpdate = true;
         }
 
         /* ---- pressure shockwave -------------------------------------- */
         const shockMesh = shockRef.current;
         if (shockMesh) {
-          const spread = 0.13 + shock * 0.42;
+          // Compact: it reads as a pressure ring on the metal, not a halo
+          // around the whole lid.
+          const spread = 0.11 + shock * 0.3;
           // A touch of ellipticity so it never reads as a clean CSS circle.
           shockMesh.scale.set(spread, spread * (0.82 + shock * 0.1), 1);
           built.shockMaterial.uniforms.uProgress.value = shock;
@@ -450,13 +455,20 @@ export const ReleaseBurst = forwardRef<ReleaseBurstHandle>(function ReleaseBurst
           shockMesh.visible = shock > 0.004 && shock < 0.997;
         }
 
-        /* ---- pressure vapour ----------------------------------------- */
+        /* ---- pressure mist ------------------------------------------- */
         const vaporPoints = vaporRef.current;
         if (vaporPoints) {
           // Expansion runs on its own clock so the burst can outrun its own
           // fade — the puff is already wide by the time it goes.
-          built.vaporMaterial.uniforms.uProgress.value = clamp01(1 - vapor) * 0.85 + 0.15;
-          built.vaporMaterial.uniforms.uOpacity.value = vapor * 0.62;
+          const expansion = clamp01(1 - vapor) * 0.85 + 0.15;
+          built.vaporMaterial.uniforms.uProgress.value = expansion;
+          // The first puff — tight, dense, still on the metal — runs a third
+          // hotter than the dispersed mist it becomes. Keyed off the expansion
+          // rather than off scroll position, so the boost is spent by the time
+          // the cloud has opened up and the approved tail is untouched. Same
+          // particles, same duration; only the leading edge gets the weight.
+          const punch = 1 + 0.34 * (1 - smoothstep(0.15, 0.5, expansion));
+          built.vaporMaterial.uniforms.uOpacity.value = vapor * 0.62 * punch;
           vaporPoints.visible = vapor > 0.004;
         }
 
@@ -475,7 +487,8 @@ export const ReleaseBurst = forwardRef<ReleaseBurstHandle>(function ReleaseBurst
 
   return (
     <group ref={groupRef} visible={false}>
-      <mesh ref={coreRef} geometry={built.core} material={built.liquid} frustumCulled={false} />
+      {/* The fluid body. Position and scale are set every frame from `flow`. */}
+      <mesh ref={bodyRef} geometry={built.body} material={built.liquid} frustumCulled={false} />
 
       <instancedMesh
         ref={dropsRef}

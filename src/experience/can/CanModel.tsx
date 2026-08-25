@@ -9,6 +9,7 @@ import {
   LID_PROFILE,
   LID_Y,
   PANEL_MAX_ROTATION,
+  PANEL_PRELOAD,
   PANEL_RECESS,
   RIM_PROFILE,
   TAB_MAX_ROTATION,
@@ -255,11 +256,18 @@ export const CanModel = forwardRef<CanHandle, Props>(function CanModel({ flavor 
         return groupRef.current;
       },
       setLidState(tabLift: number, flapBreak: number, cutEdgeFlash: number) {
-        const lift = clamp01(tabLift);
+        // Not `clamp01`. TAB_LIFT overshoots slightly past 1 on the frame the
+        // score parts — the hand is still pulling when the resistance vanishes
+        // — and clamping at 1 would swallow exactly the moment the whole snap
+        // is built around. The ceiling is still hard, so a bad track value can
+        // never fold the tab through the lid.
+        const lift = Math.min(1.09, Math.max(0, tabLift));
         // Pure rotation about the rivet — no translation at all, so the tab
         // pivots on the lid the way a real stay-tab does instead of rising off
         // it. A hair of flex near full tension so the metal reads as loaded
         // rather than as a rigid lever.
+        // Goes very slightly negative past lift 1, which is the right sign:
+        // the metal unloads as the flap lets go.
         const flex = Math.sin(lift * Math.PI) * 0.012;
         if (tabRef.current) tabRef.current.rotation.x = lift * TAB_MAX_ROTATION + flex;
 
@@ -267,8 +275,16 @@ export const CanModel = forwardRef<CanHandle, Props>(function CanModel({ flavor 
         // resting angle while a smoothstep would still be accelerating, then
         // ~12% overshoot and a ring-down. The flap never deforms — this is one
         // rigid rotation about the hinge, just badly behaved on purpose.
+        //
+        // Before it goes, the flap is preloaded: while the tab is straining and
+        // the score is still intact, it lifts a fraction of a degree the wrong
+        // way, as if the contents were pushing back. Derived from the tab, so
+        // it needs no track of its own and unwinds exactly on reverse scroll.
+        const breakage = clamp01(flapBreak);
+        const preload = clamp01(lift) * (1 - breakage) * PANEL_PRELOAD;
         if (panelRef.current) {
-          panelRef.current.rotation.x = ease('impact', clamp01(flapBreak)) * PANEL_MAX_ROTATION;
+          panelRef.current.rotation.x =
+            ease('impact', breakage) * PANEL_MAX_ROTATION - preload;
         }
 
         // Freshly exposed aluminium catches the light for a beat.

@@ -115,19 +115,32 @@ export const CAN_OPACITY: NumberTrack = [
 /**
  * Pull-tab lift, 0 = closed, 1 = fully pressed.
  *
- * Re-authored around the snap. The whole point is contrast: the tab spends a
- * long, slow stretch building tension against a sealed flap, and the flap then
- * gives way in a fraction of that time. Anticipation is 44 vh; the break is 14.
+ * The whole point is contrast: the tab spends a long, slow stretch building
+ * tension against a sealed flap, then everything stops dead, and only then does
+ * the flap give way. Anticipation is 42 vh, the dead hold is 8, the break is 6.
+ *
+ * Values above 1 are intentional and are *not* clamped away by `CanModel`: the
+ * hand is still pulling at the instant the score parts, so the tab jumps the
+ * few degrees the flap was holding back before it settles.
  */
 export const TAB_LIFT: NumberTrack = [
   { at: 0, v: 0 },
-  // Sealed hold — the composition settles before anything moves.
-  { at: 1189, v: 0, ease: 'hold' },
-  // Tension.
-  { at: 1216, v: 0.52, ease: 'inOut' },
-  { at: 1233, v: 0.86, ease: 'inOut' },
-  // The press completes through the break.
-  { at: 1244, v: 1, ease: 'out' },
+  // BEAT A — TENSION. Sealed hold while the composition settles.
+  { at: 1192, v: 0, ease: 'hold' },
+  { at: 1214, v: 0.55, ease: 'inOut' },
+  { at: 1230, v: 0.93, ease: 'inOut' },
+  // The tab finishes its travel with the flap still sealed ...
+  { at: 1234, v: 1, ease: 'out' },
+  // ... and then nothing on the can moves at all for 8 vh. This dead beat is
+  // the whole reason the break lands: the eye settles on a static, fully loaded
+  // mechanism, and the only thing still changing is the pressure under it.
+  { at: 1242, v: 1, ease: 'linear' },
+  // BEAT B — the score lets go. 1.055 x TAB_MAX_ROTATION is ~1.7 degrees past
+  // the resting travel: a mechanical jump, not a bounce. One small counter and
+  // it is settled 11 vh after the break.
+  { at: 1245, v: 1.055, ease: 'out' },
+  { at: 1249, v: 0.988, ease: 'inOut' },
+  { at: 1253, v: 1, ease: 'inOut' },
   { at: 1450, v: 1, ease: 'linear' },
 ];
 
@@ -140,30 +153,48 @@ export const TAB_LIFT: NumberTrack = [
  */
 export const FLAP_BREAK: NumberTrack = [
   { at: 0, v: 0 },
-  { at: 1233, v: 0, ease: 'hold' },
-  { at: 1247, v: 1, ease: 'linear' },
+  // BEAT B — SNAP. Sealed right up to 1242, then the whole break happens in
+  // 6 vh — about two thirds of a wheel notch at the shipped scroll distance.
+  // `CanModel` runs this through the `impact` easing, so the overshoot and
+  // settle of thin aluminium live with the hardware, not in keyframes.
+  { at: 1242, v: 0, ease: 'hold' },
+  { at: 1248, v: 1, ease: 'linear' },
   { at: 1450, v: 1, ease: 'hold' },
 ];
 
-/** Bright edge on the freshly cut aluminium, for a beat after the break. */
+/**
+ * Bright edge on the freshly cut aluminium.
+ *
+ * The peak sits on 1242 — the exact vh the score parts and the flap starts to
+ * move — so the flash, the pressure ring and the can's recoil are one event
+ * rather than three consequences. The 2 vh `in` ramp ahead of it is the score
+ * loading, and it also guarantees the peak cannot fall between two frames on a
+ * fast wheel scroll.
+ */
 export const CUT_EDGE_FLASH: NumberTrack = [
   { at: 0, v: 0 },
-  { at: 1244, v: 0, ease: 'hold' },
-  { at: 1247, v: 1, ease: 'in' },
-  { at: 1256, v: 0, ease: 'out' },
+  { at: 1240, v: 0, ease: 'hold' },
+  { at: 1242, v: 1, ease: 'in' },
+  { at: 1250, v: 0, ease: 'out' },
   { at: 1450, v: 0, ease: 'hold' },
 ];
 
 /**
- * Can recoil at the break. Peaks around 3px on screen and counter-settles
- * through zero — pressurised, not struck.
+ * Can recoil at the break.
+ *
+ * Peaks ~4.7px on screen in the release close-up (was ~3.5) and is fully
+ * settled 16 vh later — pressurised, not struck. The rise is 2 vh, so on
+ * screen it is a single-frame kick; the counter-swing and the small second
+ * bounce are what the eye actually reads as mass. `SceneController` adds this
+ * on top of the locked position track, and the *camera* never moves.
  */
 export const CAN_RECOIL: NumberTrack = [
   { at: 0, v: 0 },
-  { at: 1245, v: 0, ease: 'hold' },
-  { at: 1249, v: 1, ease: 'out' },
-  { at: 1257, v: -0.34, ease: 'inOut' },
-  { at: 1268, v: 0, ease: 'inOut' },
+  { at: 1242, v: 0, ease: 'hold' },
+  { at: 1244, v: 1.35, ease: 'out' },
+  { at: 1248, v: -0.42, ease: 'inOut' },
+  { at: 1253, v: 0.12, ease: 'inOut' },
+  { at: 1258, v: 0, ease: 'inOut' },
   { at: 1450, v: 0, ease: 'hold' },
 ];
 
@@ -206,7 +237,13 @@ export const CAMERA_POSITION: Vec3Track = [
 
   // RELEASE - climb over the lid so the seal and the pull tab are actually in
   // frame, then lock. The camera ends ~24 degrees above the horizontal.
-  { at: 1150, v: [0, 1.62, 4.3], ease: 'inOut' },
+  //
+  // The push-in is split into an ease-in / accelerate / settle arc instead of
+  // one symmetric move. Leaving the boundary slowly is what lets the station
+  // ring fade out behind the can before the camera commits to the close-up.
+  { at: 1104, v: [0, 0.52, 6.3], ease: 'in' },
+  { at: 1126, v: [0, 0.92, 5.45], ease: 'linear' },
+  { at: 1150, v: [0, 1.62, 4.3], ease: 'out' },
   { at: 1240, v: [0, 2.5, 3.52], ease: 'inOut' },
   { at: 1262, v: [0, 2.58, 3.42], ease: 'out' },
   { at: 1320, v: [0, 2.58, 3.42], ease: 'hold' },
@@ -236,6 +273,8 @@ export const CAMERA_TARGET: Vec3Track = [
   { at: 880, v: [-0.35, 0.12, -0.2], ease: 'inOut' },
   { at: 960, v: [0.2, -0.08, -0.3], ease: 'inOut' },
   { at: 1080, v: [0, 0.16, 0], ease: 'inOut' },
+  { at: 1104, v: [0, 0.22, 0], ease: 'in' },
+  { at: 1126, v: [0, 0.42, 0], ease: 'linear' },
 
   // Camera target rises toward the lid for the open & pour framing.
   { at: 1150, v: [0, 0.74, 0], ease: 'inOut' },
@@ -262,7 +301,9 @@ export const CAMERA_FOV: NumberTrack = [
   { at: 724, v: 30, ease: 'expoOut' },
   { at: 820, v: 31, ease: 'inOut' },
   { at: 1080, v: 33, ease: 'inOut' },
-  { at: 1150, v: 29, ease: 'inOut' },
+  { at: 1104, v: 32.6, ease: 'in' },
+  { at: 1126, v: 31.4, ease: 'linear' },
+  { at: 1150, v: 29, ease: 'out' },
   { at: 1262, v: 30, ease: 'inOut' },
   { at: 1320, v: 30, ease: 'hold' },
   { at: 1450, v: 32, ease: 'inOut' },
@@ -385,7 +426,14 @@ export const STATION_PRESENCE: NumberTrack = [
   { at: 790, v: 0, ease: 'hold' },
   { at: 848, v: 1, ease: 'inOut' },
   { at: 1050, v: 1, ease: 'linear' },
-  { at: 1120, v: 0, ease: 'inOut' },
+  // The ring eases out *behind* the can while the camera is still pushing in,
+  // rather than vanishing at the chapter boundary. It keeps spinning the whole
+  // way down (its rotation is scroll-driven), so the last thing the eye sees of
+  // the station is still moving — which is what stops the handoff reading as a
+  // cut.
+  { at: 1104, v: 0.6, ease: 'inOut' },
+  { at: 1148, v: 0.18, ease: 'linear' },
+  { at: 1186, v: 0, ease: 'inOut' },
 ];
 
 export const LIQUID_PRESENCE: NumberTrack = [
@@ -461,18 +509,30 @@ export const RELEASE_FRAMING = {
  */
 export const RELEASE_PRESSURE: NumberTrack = [
   { at: 0, v: 0 },
-  { at: 1189, v: 0, ease: 'hold' },
-  { at: 1233, v: 1, ease: 'in' },
-  { at: 1246, v: 0, ease: 'out' },
+  { at: 1192, v: 0, ease: 'hold' },
+  { at: 1230, v: 0.86, ease: 'in' },
+  // Still creeping upward through the dead hold. With the tab, the flap and the
+  // camera all stationary between 1234 and 1242, this is the only thing on
+  // screen that changes — which keeps the pause tense instead of dead.
+  { at: 1242, v: 1, ease: 'linear' },
+  // Gone across the break itself: the pressure does not fade, it escapes.
+  { at: 1248, v: 0, ease: 'out' },
   { at: 1450, v: 0, ease: 'hold' },
 ];
 
-/** Pressure ring, fired from the aperture the instant the score breaks. */
+/**
+ * Pressure ring, fired from the aperture the instant the score breaks.
+ *
+ * The value is the ring's *expansion*, and `ReleaseBurst` fades it out as
+ * `(1 - shock)^2` — so the ring is at its brightest and tightest at the bottom
+ * of this track. Starting it at 1242 rather than ramping in from 1240 is what
+ * puts its peak on the same frame as the cut-edge flash and the can recoil.
+ */
 export const RELEASE_SHOCK: NumberTrack = [
   { at: 0, v: 0 },
-  { at: 1247, v: 0, ease: 'hold' },
-  { at: 1249, v: 0.1, ease: 'out' },
-  { at: 1276, v: 1, ease: 'linear' },
+  { at: 1241, v: 0, ease: 'hold' },
+  { at: 1242, v: 0.03, ease: 'linear' },
+  { at: 1268, v: 1, ease: 'linear' },
   { at: 1450, v: 1, ease: 'hold' },
 ];
 
@@ -482,10 +542,13 @@ export const RELEASE_SHOCK: NumberTrack = [
  */
 export const RELEASE_VAPOR: NumberTrack = [
   { at: 0, v: 0 },
-  { at: 1249, v: 0, ease: 'hold' },
-  { at: 1256, v: 1, ease: 'out' },
-  { at: 1272, v: 0.4, ease: 'linear' },
-  { at: 1286, v: 0, ease: 'inOut' },
+  // Mist starts the instant the score gives way, at the aperture. The attack is
+  // 3 vh rather than 7, so the first puff arrives *with* the snap instead of
+  // trailing it; the tail keeps its shape and ends 4 vh earlier than before.
+  { at: 1242, v: 0, ease: 'hold' },
+  { at: 1245, v: 1, ease: 'out' },
+  { at: 1258, v: 0.55, ease: 'linear' },
+  { at: 1276, v: 0, ease: 'inOut' },
   { at: 1450, v: 0, ease: 'hold' },
 ];
 
@@ -496,20 +559,22 @@ export const RELEASE_VAPOR: NumberTrack = [
  */
 export const RELEASE_FLOW: NumberTrack = [
   { at: 0, v: 0 },
-  { at: 1253, v: 0, ease: 'hold' },
-  { at: 1268, v: 0.42, ease: 'out' },
-  { at: 1290, v: 0.8, ease: 'linear' },
-  { at: 1318, v: 1, ease: 'out' },
+  // BEAT C — RELEASE. Fast expansion out of the break, then the body gives way
+  // to droplets and the whole field is dissipating before the CTA takes over.
+  { at: 1246, v: 0, ease: 'hold' },
+  { at: 1262, v: 0.45, ease: 'out' },
+  { at: 1286, v: 0.82, ease: 'linear' },
+  { at: 1312, v: 1, ease: 'out' },
   { at: 1450, v: 1, ease: 'hold' },
 ];
 
 /** Overall presence: in behind the break, out into the CTA's liquid field. */
 export const RELEASE_PRESENCE: NumberTrack = [
   { at: 0, v: 0 },
-  { at: 1253, v: 0, ease: 'hold' },
-  { at: 1266, v: 1, ease: 'out' },
-  { at: 1300, v: 1, ease: 'linear' },
-  { at: 1322, v: 0, ease: 'inOut' },
+  { at: 1246, v: 0, ease: 'hold' },
+  { at: 1258, v: 1, ease: 'out' },
+  { at: 1298, v: 1, ease: 'linear' },
+  { at: 1318, v: 0, ease: 'inOut' },
   { at: 1450, v: 0, ease: 'hold' },
 ];
 
@@ -518,5 +583,8 @@ export const FLASHES: [number, number, number, number][] = [
   [93, 5, 16, 1], // ignition
   [566, 4, 14, 0.72], // NOVA -> COMET swap
   [699, 4, 14, 0.72], // COMET -> VOID swap
-  [1248, 3, 11, 0.5], // the score gives way
+  // Peaks 3 vh *after* the score parts. At 1242 this is exactly zero, so the
+  // snap frame is a hard local flash on the metal against black; the scene-wide
+  // lift belongs to what escapes, one beat later, not to a still-sealed can.
+  [1245, 3, 11, 0.5], // the pressure escapes
 ];

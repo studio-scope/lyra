@@ -26,18 +26,25 @@ export const EASING: Record<EaseName, (t: number) => number> = {
     return 1 + (c + 1) * p * p * p + c * p * p;
   },
   /**
-   * A mechanical break, not an ease.
+   * A mechanical break, not an ease. Used by the scored can flap and nothing
+   * else.
    *
    * A damped spring: the value is already past its target by the time a
-   * smoothstep would still be accelerating, overshoots roughly 12%, then rings
-   * down. This is what makes a scored panel read as *giving* rather than being
-   * lowered — the whole event is over in the first third of the interval and
-   * the rest is settle. Returns above 1 mid-flight, which is the point.
+   * smoothstep would still be accelerating, overshoots ~7%, then is done. This
+   * is what makes a scored panel read as *giving* rather than being lowered —
+   * the whole event is over in the first third of the interval and the rest is
+   * settle. Returns above 1 mid-flight, which is the point.
+   *
+   * The decay term is deliberately steep. At the original -6 the panel took a
+   * ~12% overshoot and a visible second swing, which on a 66-degree travel is
+   * about 8 degrees of afterswing — readable as rubber rather than as 0.2mm
+   * aluminium. -7.6 keeps a single ~4.5-degree overshoot and kills the second
+   * swing to half a degree, so the flap arrives, twitches once and stops.
    */
   impact: (t) => {
     if (t <= 0) return 0;
     if (t >= 1) return 1;
-    return 1 - Math.exp(-6 * t) * Math.cos(9 * t);
+    return 1 - Math.exp(-7.6 * t) * Math.cos(9 * t);
   },
   hold: () => 0,
 };

@@ -19,7 +19,9 @@ import { PHYSICAL_PAGE_VH } from './config/timeline';
 
 export function App() {
   useScrollDriver();
-  const { chapter, flavor } = useTimelineStatus();
+  // `chapter` is no longer surfaced anywhere; the flavour still drives the
+  // DOM accent tokens and the WebGL palette.
+  const { flavor } = useTimelineStatus();
   const debug = useDebugControls();
 
   /** The flavour drives the DOM accent tokens as well as the WebGL palette. */
@@ -42,7 +44,7 @@ export function App() {
         <Chapter06Cta />
       </div>
 
-      <HudOverlay chapter={chapter} flavor={flavor} />
+      <HudOverlay />
 
       {/* The page's entire scroll length. */}
       <div className={styles.spacer} style={{ height: `${PHYSICAL_PAGE_VH}vh` }} />
