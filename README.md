@@ -15,8 +15,9 @@ imagery, no stock assets, no downloaded 3D models and no video.
 
 ## Current Project Status
 
-**Status date: 25 August 2026 — Phase 6 complete. The six-chapter structure is
-finished and the Chapter 05 → 06 product exit is fixed.**
+**Status date: 25 August 2026 — Phase 7 complete. Flavor Nebulas and Station
+Flyby have real depth and material hierarchy instead of flat gradients and
+placeholder boxes.**
 
 The site runs end to end as a finished six-chapter product story. There is no
 development placeholder, temporary label or filler copy left anywhere in the
@@ -552,6 +553,98 @@ unchanged by this pass.**
 
 ---
 
+## Environment polish — Flavor Nebulas and Station Flyby
+
+A bounded polish pass. Exactly two files were touched:
+`src/experience/environments/NebulaVolume.tsx` and
+`src/experience/environments/StationRing.tsx`. No timeline, scroll, camera,
+can, material, copy or HUD file was opened.
+
+### The problem
+
+Both environments were structurally correct but read as unfinished. The
+nebula was **three copies of one shape** — the same `fbm` noise at three
+scales, gated by one squared radial falloff — which is, literally, a radial
+gradient. The station was three near-identical grey `MeshStandardMaterial`s
+with no secondary structure, so it read as a dark ring with boxes attached
+rather than something engineered.
+
+### Nebula: three structural roles, not three scales
+
+Each of the three depth planes now has a distinct job (`uRole`):
+
+| Role | z | Function |
+| --- | --- | --- |
+| 0, near | −9 | **Filaments** — domain-warped *ridged* noise, thresholded hard so only the brightest creases survive as thin strands |
+| 1, mid | −17 | **Body** — domain-warped fbm carrying the cloud's mass |
+| 2, far | −30 | **Haze** — 2-octave low frequency only, pure depth separation |
+
+A low-frequency **coverage mask** confines each layer to selected regions
+instead of filling the viewport, and the radial falloff is **broken by
+noise** so no layer ever shows a clean arc or reads as a circle stacked on a
+circle. Per-flavour space deformation replaces palette-swapping: NOVA
+compresses toward centre with sharper filaments; COMET squeezes X to 0.30
+and adds lateral flow, so stretched cells read as passage; VOID opens out and
+carves a real off-axis negative-space pocket. `NEBULA_GAIN` (currently
+`0.75`) is the one dial for the whole environment's loudness.
+
+Also fixed in passing: the dust particles seeded their positions with
+`Math.random()`, so the field changed on every reload and no capture of this
+chapter was ever reproducible. Now seeded with the project's existing
+`mulberry32` PRNG.
+
+### Station: material hierarchy plus three detail families
+
+Silhouette, main ring, spokes, camera and can choreography are unchanged.
+Added, and deliberately only these three:
+
+1. an **inner truss ring with 18 radial struts**, set back in Z, so the ring
+   has an interior instead of a bare annulus;
+2. **22 detail modules** — alternating antenna masts and docking nodes — at a
+   different material tone from the structural boxes;
+3. a **two-tier light hierarchy**: dim static navigation ticks plus a short
+   9-tick travelling scan arc whose position is a pure function of scroll
+   (`(vh * 0.055) % LIGHTS`).
+
+Materials now separate into three tiers instead of one grey repeated three
+times: hull (`#0A0A10`, rough, matte — mass and silhouette), structure
+(`#12131F`, cooler, tighter — separates from the hull under the same light),
+and detail (`#1B1D2C`, the only genuinely reflective tier — this is what
+makes the small parts read as machined hardware rather than blocked-out
+geometry). `STATION_GAIN` (currently `0.75`) is the equivalent single dial.
+
+### Restraint pass
+
+Per the taste-gate rule this was built under: implement, then cut both new
+systems' loudness by 25% and keep the quieter version unless it loses
+necessary depth. It did not, so `NEBULA_GAIN` and `STATION_GAIN` both ship at
+`0.75`, and the antenna masts were additionally shortened. Turning either dial
+back toward `1.0` is the correct way to make a chapter louder — do not add a
+fourth detail family instead.
+
+### Verified at 1440 × 900
+
+| Check | Result |
+| --- | --- |
+| Black dominance across the 5 checkpoints | 69% – 88% dark pixels |
+| Full-screen colour wash / clipping | none — clipped pixels ≤ 0.07% of frame, all star/can specular |
+| Forward vs reverse determinism | **0/5 mismatches, mean 0.0000 — bit-identical** |
+| Chapter 05 + CTA vs the Phase-6 baseline | **pixel-consistent**, mean ≤ 0.074/255 at vh 1300/1315/1325/1340/1380 |
+| Chapter 02→03 and 04→05 transitions | intact |
+
+Before/after frames: `docs/qa/final-polish/environment/{before,after}/`.
+
+### Honest remaining weaknesses
+
+- **NOVA is the least dark of the three** (69% vs 88% for COMET/VOID) and its
+  body region reads a little soft. Lowering role-1 gain would sharpen it.
+- **VOID may now be too subtle** — close to plain starfield in the centre.
+- **The travelling scan arc is barely visible in a still frame.** It does its
+  job at scroll speed; in a screenshot it contributes almost nothing.
+- **Antenna masts still draw the eye** more than any other station detail.
+
+---
+
 ## Asset Pipeline
 
 **Nano Banana has not been used for any scene asset yet.** Everything currently
@@ -854,15 +947,18 @@ stands.
    hero moment at full size. Levers: `CAN_RECOIL` + `RECOIL_*`, `FLAP_BREAK`,
    the `impact` decay in `easing.ts`, `RELEASE_VAPOR`, and the droplet block in
    `ReleaseBurst.tsx`. Change one at a time and re-scroll.
-3. **Optional nebula and station detail.** `NebulaVolume` is uniform-driven,
-   so swapping in plates is a fragment-shader change, not a chapter rewrite.
-   Do not spend Higgsfield credits on it.
+3. ~~Optional nebula and station detail.~~ **Done** — see *Environment polish*
+   above. Both environments now have real depth and material hierarchy;
+   `NEBULA_GAIN` and `STATION_GAIN` are the dials if either should read
+   louder or quieter.
 4. **Optional:** `docs/qa/final/6-ch05-snap.png` and `7-ch05-release.png`
-   predate Phase 4 and still show the old snap. `docs/qa/release/` and
-   `docs/qa/structure/` are the authoritative records now.
-5. **Re-record the advertisement** if any of the above changes. The current cut
-   is `docs/qa/final-ad/lyra-full-traversal-1440x900.mp4` (49.4 s, both
-   overlays off, real wheel input, gitignored).
+   predate Phase 4 and still show the old snap. `docs/qa/release/`,
+   `docs/qa/structure/` and `docs/qa/final-polish/` are the authoritative
+   records now.
+5. **Re-record the advertisement.** The nebula and station changed, so the
+   current cut — `docs/qa/final-ad/lyra-full-traversal-1440x900.mp4` (49.4 s,
+   both overlays off, real wheel input, gitignored) — predates them and is now
+   the honest next step rather than an optional one.
 **Things that are locked and must not be touched while doing any of the above:**
 `TOTAL_VH`, `SCROLL_DISTANCE_SCALE`, the chapter ranges, the camera keyframes
 outside 1104 – 1150, the wordmark, the can geometry and materials, the flavour
@@ -876,9 +972,8 @@ rebuilt lid or the scroll calibration — see *Locked Visual Decisions*.
 
 ## Known Limitations
 
-- **Nebulas are procedural placeholders** — deliberately faint shader volumes,
-  meant to be replaced.
-- **The station is procedural** — geometry only, no panel texture yet.
+- **Nebulas and the station are procedural**, not textured plates or a modelled
+  asset — see *Environment polish* for what that means as of Phase 7. Further art direction (real nebula plates, a station panel texture) remains possible but is not required.
 - **At the release camera's shallow angle you cannot see far into the can.** The
   opened flap is present and correct but reads subtly at that elevation.
 - **The shoulder shows a dark, flat-looking band right beneath the aperture**,
@@ -912,7 +1007,8 @@ rebuilt lid or the scroll calibration — see *Locked Visual Decisions*.
 | `docs/qa/polish/release-1..3` | The snap **before** the Phase 4 micro-polish, kept as the before side of the comparison. |
 | `docs/qa/final/` | The whole site, chapter by chapter. Its two Chapter 05 frames predate Phase 4. |
 | `docs/qa/product-exit/` | **The Chapter 05 → 06 opaque product exit.** vh 1300 / 1315 / 1325 / 1340 / 1380, plus vh 1300 reached by reverse-scrolling from 1380. |
-| `docs/qa/structure/` | **Phase 5 — one frame per chapter, in order.** The finished six-chapter story: `01-ignition` through `06-cta`. Start here for structure and copy. |
+| `docs/qa/final-polish/environment/` | **Phase 7 — the nebula and station polish.** `before/` and `after/` at vh 500 / 640 / 770 / 900 / 1020. |
+| `docs/qa/structure/` | **Phase 5 — one frame per chapter, in order.** The finished six-chapter story: `01-ignition` through `06-cta`. Start here for structure and copy. |
 | `docs/qa/scroll-distance/` | The corrected scroll traversal — 16 logical checkpoints across the whole timeline. |
 | `docs/qa/after/` | The can/packaging refinement, including `neutral-*` renders proving the three flavors are distinct under plain white light. |
 | `docs/qa/before/` | The state before that refinement. |
@@ -926,14 +1022,17 @@ throwaway.
 
 ## Handoff
 
-**25 August 2026.** The repository is in a safe, documented, pushed state.
-Chapters 01–06 all work and read as a finished product story end to end.
-Chapter 05 is native, polished and externally approved, the global HUD is down
-to two corners, scroll pacing is calibrated and approved, all visible copy is
-final, and `tsc -b` and `npm run build` both pass clean.
-
-What remains is **aesthetic polish only**, listed in *Remaining Work*, and all
-of it is optional — the site is recordable as it stands.
+**25 August 2026.** The repository is in a safe, documented, pushed state.
+Chapters 01–06 all work and read as a finished product story end to end.
+Chapter 05 is native, polished and externally approved, the global HUD is down
+to two corners, scroll pacing is calibrated and approved, all visible copy is
+final, Flavor Nebulas and Station Flyby have real depth and material
+hierarchy, and `tsc -b` and `npm run build` both pass clean.
+
+What remains is listed in *Remaining Work* — the shoulder knuckle and the
+Chapter 05 taste pass are the two with any judgment left in them; everything
+else is optional. **Re-recording the advertisement is the one non-optional
+item**, since the nebula and station changed and the current cut predates them.
 
 Phase 4 changed ten source files and nothing else: `src/App.tsx`,
 `src/components/HudOverlay.tsx`, `src/components/HudOverlay.module.css`,
