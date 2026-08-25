@@ -15,8 +15,8 @@ imagery, no stock assets, no downloaded 3D models and no video.
 
 ## Current Project Status
 
-**Status date: 25 August 2026 — Phase 5 complete. Structure, content and
-narrative are finished across all six chapters.**
+**Status date: 25 August 2026 — Phase 6 complete. The six-chapter structure is
+finished and the Chapter 05 → 06 product exit is fixed.**
 
 The site runs end to end as a finished six-chapter product story. There is no
 development placeholder, temporary label or filler copy left anywhere in the
@@ -478,6 +478,80 @@ empty HUD corners for symmetry — the whitespace is the design.
 
 ---
 
+## The Chapter 05 → 06 product exit
+
+The can leaves the frame by **moving**, not by fading. This is the fix for a
+blocking rendering defect and the rule behind it is not negotiable:
+
+> **The LYRA can is opaque for every frame in which it is drawn.**
+
+### The defect
+
+A track called `CAN_OPACITY` ramped 1 → 0 across vh **1320 → 1372** (91.0% →
+94.6% of the timeline — exactly the band where the bug was reported), and
+`CanModel.setOpacity` reacted to any value below 0.999 by setting
+`transparent = true` **and `depthWrite = false` on every can material at once**.
+
+Losing depth writes is what actually broke it. The body stopped occluding
+anything, so for ~52 vh the can was a translucent shell with the violet
+LiquidWave horizon, the CTA composition and the can’s **own interior cavity**
+all visible straight through it.
+
+### The fix
+
+`CAN_OPACITY` is gone. In its place:
+
+- **`CAN_PRESENCE`** — a switch, not a fade. `CanModel.setPresence` sets
+  `group.visible` and **touches no material at all**. Every surface keeps the
+  opacity, blending and depth behaviour it was authored with, always. There is
+  no code path left that can make the can translucent.
+- The exit is one **parent rig transform**, so body, label, lid, tab, rivet,
+  flap and interior cavity leave together and cannot separate.
+
+### The transition, vh 1305 – 1344
+
+| vh | Beat |
+| --- | --- |
+| 1298 – 1314 | Release finishes and settles. `RELEASE_PRESENCE` is 0 by 1318. |
+| 1314 | **Settled hold** — the frame is just the open can. |
+| 1314 → 1326 | Descent begins, eased `in` so it accelerates like weight. |
+| 1326 → 1342 | Linear fall, drifting back in Z for depth; scale eases 1 → 0.95. |
+| **1332** | Can is **clear of the CTA reading area** (measured). |
+| **1342** | Can is **fully below frame** — projected top edge at y ≈ 1061 of 900. |
+| 1343 | `CAN_PRESENCE` switches to 0. Nothing is cut while visible. |
+| 1342 → 1408 | CTA cascade: wordmark, headline, flavors, button, tagline. |
+
+The CTA wordmark now begins at **1342**, ten vh later than before, so it never
+shares the centre of frame with the product.
+
+### Why the can does not sink into the violet horizon
+
+It was considered and rejected on the evidence. `LiquidWave` is a **camera-pinned
+backdrop**: `depthTest: false`, `depthWrite: false`, `renderOrder: -20`, refitted
+to the frustum every frame. It has no meaningful position in the depth buffer, so
+a can "entering" it could only ever be faked with render-order or masking tricks.
+The can therefore descends **in front of** the horizon, which is both honest and
+correct, and the horizon stays as the backdrop the CTA resolves over.
+
+### Verified at 1440 × 900
+
+| Check | Result |
+| --- | --- |
+| Can-subtree materials at vh 1300 / 1315 / 1325 / 1340 | **all opaque**, `transparent=false`, `depthWrite=true` |
+| CTA text or horizon visible through the body | none |
+| Interior geometry visible through the shell | none — only through the real aperture |
+| Hard cut while visible | none — clear of frame at 1342, switched off at 1343 |
+| Forward vs reverse from vh 1380 | **0/4 mismatches** |
+| Reverse reconstruction at vh 1300 | full opaque can, lid open, identical |
+
+Frames: `docs/qa/product-exit/`.
+
+**The six-chapter structure, all copy from `90c1d71`, the global HUD, Chapters
+01–04, the Chapter 05 snap and release, and the settled CTA composition are
+unchanged by this pass.**
+
+---
+
 ## Asset Pipeline
 
 **Nano Banana has not been used for any scene asset yet.** Everything currently
@@ -837,6 +911,7 @@ rebuilt lid or the scroll calibration — see *Locked Visual Decisions*.
 | `docs/qa/polish/x1..x4` | The Station – Release handoff: the ring still visible behind the can at 1126 and 1150. |
 | `docs/qa/polish/release-1..3` | The snap **before** the Phase 4 micro-polish, kept as the before side of the comparison. |
 | `docs/qa/final/` | The whole site, chapter by chapter. Its two Chapter 05 frames predate Phase 4. |
+| `docs/qa/product-exit/` | **The Chapter 05 → 06 opaque product exit.** vh 1300 / 1315 / 1325 / 1340 / 1380, plus vh 1300 reached by reverse-scrolling from 1380. |
 | `docs/qa/structure/` | **Phase 5 — one frame per chapter, in order.** The finished six-chapter story: `01-ignition` through `06-cta`. Start here for structure and copy. |
 | `docs/qa/scroll-distance/` | The corrected scroll traversal — 16 logical checkpoints across the whole timeline. |
 | `docs/qa/after/` | The can/packaging refinement, including `neutral-*` renders proving the three flavors are distinct under plain white light. |

@@ -52,11 +52,17 @@ export const CAN_POSITION: Vec3Track = [
   { at: 1150, v: [0, -0.1, 0], ease: 'inOut' },
   { at: 1240, v: [0, -0.12, 0], ease: 'linear' },
   { at: 1262, v: [0, -0.12, 0], ease: 'hold' },
-  { at: 1320, v: [0, -0.12, 0], ease: 'hold' },
+  // A brief settled hold once the release has finished: RELEASE_PRESENCE is
+  // gone by 1318, so by 1314 the frame is just the open can.
+  { at: 1314, v: [0, -0.12, 0], ease: 'hold' },
 
-  // 06 CTA - the can recedes; the wordmark owns the frame.
-  { at: 1380, v: [0, -0.8, -3.2], ease: 'inOut' },
-  { at: 1450, v: [0, -1.1, -4.2], ease: 'linear' },
+  // 06 CTA - the opaque product leaves downward. It accelerates like weight
+  // rather than easing symmetrically, and drifts back as it goes so the exit
+  // reads as depth and not as a slide. Fully clear of frame by 1342.
+  { at: 1326, v: [0, -1.15, -0.4], ease: 'in' },
+  { at: 1342, v: [0, -3.9, -1.2], ease: 'linear' },
+  { at: 1380, v: [0, -5.4, -2.6], ease: 'linear' },
+  { at: 1450, v: [0, -6.2, -3.4], ease: 'linear' },
 ];
 
 export const CAN_ROTATION: Vec3Track = [
@@ -90,7 +96,7 @@ export const CAN_ROTATION: Vec3Track = [
   // printed LYRA legible in the hero close-up.
   { at: 1150, v: [-0.05, 19.47, 0.015], ease: 'inOut' },
   { at: 1262, v: [-0.05, 19.47, 0.015], ease: 'hold' },
-  { at: 1320, v: [-0.05, 19.47, 0.015], ease: 'hold' },
+  { at: 1314, v: [-0.05, 19.47, 0.015], ease: 'hold' },
   { at: 1450, v: [-0.02, 19.6, 0], ease: 'linear' },
 ];
 
@@ -100,15 +106,26 @@ export const CAN_SCALE: NumberTrack = [
   { at: 96, v: 0.12, ease: 'expoIn' },
   { at: 126, v: 0.6, ease: 'linear' },
   { at: 152, v: 1, ease: 'expoOut' },
-  { at: 1320, v: 1, ease: 'linear' },
+  { at: 1314, v: 1, ease: 'linear' },
+  // A restrained shrink during the exit only — enough to read as receding,
+  // not enough to read as the can being scaled away.
+  { at: 1342, v: 0.95, ease: 'inOut' },
   { at: 1450, v: 0.92, ease: 'linear' },
 ];
 
 /** Master can opacity - only used to retire the can behind the CTA. */
-export const CAN_OPACITY: NumberTrack = [
+/**
+ * Whole-product presence: 1 = drawn, 0 = not drawn. Never a fade.
+ *
+ * The switch sits at 1343, a beat *after* `CAN_POSITION` has carried the can
+ * clear of the bottom of frame at 1342, so nothing is ever cut while visible
+ * and nothing is ever drawn translucent. Reverse scrubbing restores it on the
+ * same frame because this is a pure function of vh like every other track.
+ */
+export const CAN_PRESENCE: NumberTrack = [
   { at: 0, v: 1 },
-  { at: 1320, v: 1, ease: 'hold' },
-  { at: 1372, v: 0, ease: 'inOut' },
+  { at: 1342, v: 1, ease: 'hold' },
+  { at: 1344, v: 0, ease: 'linear' },
   { at: 1450, v: 0, ease: 'hold' },
 ];
 

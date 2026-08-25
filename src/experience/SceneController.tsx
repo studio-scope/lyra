@@ -199,7 +199,7 @@ export function SceneController({ flavor }: Props) {
         sampleNumber(K.FLAP_BREAK, vh),
         sampleNumber(K.CUT_EDGE_FLASH, vh),
       );
-      can.setOpacity(sampleNumber(K.CAN_OPACITY, vh));
+      can.setPresence(sampleNumber(K.CAN_PRESENCE, vh));
     }
 
     /* ---- flight trail ------------------------------------------------ */

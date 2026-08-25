@@ -16,11 +16,15 @@ const { start, end } = CHAPTERS[5];
 export function Chapter06Cta() {
   // Exit stops sit past the end of the timeline: the CTA is the final frame of
   // the recording and must still be on screen at the very bottom of the page.
-  const mark = useBlockAt([1330, 1352, 1600, 1610], 26);
-  const headline = useBlockAt([1344, 1366, 1600, 1610], 22);
-  const flavors = useBlockAt([1356, 1378, 1600, 1610], 18);
-  const cta = useBlockAt([1368, 1392, 1600, 1610], 16);
-  const support = useBlockAt([1382, 1406, 1600, 1610], 12);
+  // Nothing starts reading until the product is out of the centre of frame:
+  // the can is clear at 1342, so the wordmark begins there. The cascade is
+  // tightened rather than pushed back, so the settled composition still
+  // resolves by ~1408 exactly as before.
+  const mark = useBlockAt([1342, 1362, 1600, 1610], 26);
+  const headline = useBlockAt([1352, 1372, 1600, 1610], 22);
+  const flavors = useBlockAt([1362, 1382, 1600, 1610], 18);
+  const cta = useBlockAt([1372, 1394, 1600, 1610], 16);
+  const support = useBlockAt([1384, 1408, 1600, 1610], 12);
 
   return (
     <ChapterSection start={start} end={end}>

@@ -49,7 +49,17 @@ export interface CanHandle {
    * faster than the lift that causes it.
    */
   setLidState(tabLift: number, flapBreak: number, cutEdgeFlash: number): void;
-  setOpacity(v: number): void;
+  /**
+   * Whole-product presence, as a switch — not a fade.
+   *
+   * The can is an opaque physical object; there is no frame in which it is
+   * half-there. Cross-fading it used to flip every material to
+   * `transparent = true` with `depthWrite = false`, which stopped the body
+   * occluding anything and let the CTA wordmark, the violet horizon and the
+   * can's own interior cavity show straight through the shell. The product
+   * leaves the frame by moving, and only then stops being drawn.
+   */
+  setPresence(v: number): void;
 }
 
 interface Props {
@@ -248,7 +258,6 @@ export const CanModel = forwardRef<CanHandle, Props>(function CanModel({ flavor 
   }, [geometries, materials]);
 
   /* ---- imperative controls used by the scene controller ---------- */
-  const opacityRef = useRef(1);
   useImperativeHandle(
     ref,
     () => ({
@@ -290,19 +299,10 @@ export const CanModel = forwardRef<CanHandle, Props>(function CanModel({ flavor 
         // Freshly exposed aluminium catches the light for a beat.
         materials.cutEdge.emissiveIntensity = cutEdgeFlash * 3.4;
       },
-      setOpacity(v: number) {
-        if (Math.abs(v - opacityRef.current) < 0.001) return;
-        opacityRef.current = v;
-        const transparent = v < 0.999;
-        for (const m of Object.values(materials)) {
-          if (m.transparent !== transparent) {
-            m.transparent = transparent;
-            m.needsUpdate = true;
-          }
-          m.opacity = v;
-          m.depthWrite = !transparent;
-        }
-        if (groupRef.current) groupRef.current.visible = v > 0.002;
+      setPresence(v: number) {
+        // No material is touched. Every surface keeps the opacity, blending and
+        // depth behaviour it was authored with, for every frame it is drawn.
+        if (groupRef.current) groupRef.current.visible = v > 0.5;
       },
     }),
     [materials],
