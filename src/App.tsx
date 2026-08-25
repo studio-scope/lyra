@@ -14,6 +14,7 @@ import { Chapter05Release } from './chapters/Chapter05Release';
 import { Chapter06Cta } from './chapters/Chapter06Cta';
 
 import { useScrollDriver, useTimelineStatus } from './hooks/useScroll';
+import { FLAVOR_PIN } from './config/devFlags';
 import { useDebugControls } from './hooks/useDebug';
 import { PHYSICAL_PAGE_VH } from './config/timeline';
 
@@ -21,7 +22,10 @@ export function App() {
   useScrollDriver();
   // `chapter` is no longer surfaced anywhere; the flavour still drives the
   // DOM accent tokens and the WebGL palette.
-  const { flavor } = useTimelineStatus();
+  const { flavor: timelineFlavor } = useTimelineStatus();
+  // `?flavor=` pins the variant for the neutral-light comparison. Null on
+  // every normal load, so the timeline is the only driver in the shipped site.
+  const flavor = FLAVOR_PIN ?? timelineFlavor;
   const debug = useDebugControls();
 
   /** The flavour drives the DOM accent tokens as well as the WebGL palette. */

@@ -15,9 +15,9 @@ imagery, no stock assets, no downloaded 3D models and no video.
 
 ## Current Project Status
 
-**Status date: 25 August 2026 — Phase 7 complete. Flavor Nebulas and Station
-Flyby have real depth and material hierarchy instead of flat gradients and
-placeholder boxes.**
+**Status date: 25 August 2026 — Phase 8 complete. The product identity is
+final: a traced canonical wordmark, three differentiated flavour packages and a
+premium label material.**
 
 The site runs end to end as a finished six-chapter product story. There is no
 development placeholder, temporary label or filler copy left anywhere in the
@@ -95,6 +95,141 @@ The can's opening hardware is real geometry, not a texture:
 Tab travel is 0 → 0.55 rad (31.5°); the flap follows to 1.15 rad (65.9°) once
 the score gives way, so the can reads as sealed until it is not. Both overshoot
 slightly at the break and settle — see *The mechanical sequence*.
+
+### Phase 8 — product identity
+
+One pass over the LYRA mark and the packaging. Externally approved.
+
+- the wordmark is now a **deterministic vector trace of the approved artwork**,
+  used as the single source of truth by the hero, the CTA and the can;
+- NOVA, COMET and VOID have real packaging differentiation that survives
+  **neutral white light**, not just their own coloured environments;
+- the label separates printed coating from pearl foil as a material, not as a
+  brighter colour;
+- three guarded dev flags make the neutral comparison reproducible.
+
+Details in *The canonical wordmark* and *The packaging system* below.
+
+---
+
+## The canonical wordmark
+
+**The mark is not a font and not a drawing. It is a trace.**
+
+| | |
+| --- | --- |
+| Source | `lyra.jpg`, 2816 × 520 — committed at `docs/qa/final-polish/product-identity/reference/00-reference-lyra.jpg` |
+| Ink bbox | x 642–2174, y 120–411 (1532 × 291) |
+| Method | threshold at 128 → `skimage.measure.find_contours` at 0.5 → Douglas-Peucker at 0.9 source px → normalised to height 200 |
+| Result | viewBox `0 0 1052.92 200`, ratio **5.2646**, 5 subpaths, 96 vertices, 1219 chars |
+| Accuracy | **IoU 0.99622**, max contour deviation **1.00 px**, 0 pixels beyond 1 px |
+
+Accuracy was measured by rasterising the **shipped path string** through the
+browser's own Canvas2D at the native 2816 × 520 reference resolution and
+comparing against the unresampled source mask. Resampling the ground truth to a
+smaller frame adds ~1 px of its own error and would have flattered the number.
+
+Two things to know before touching it:
+
+- **Even-odd fill is mandatory.** Contour winding out of the tracer is
+  arbitrary. `fill-rule="evenodd"` in SVG, `ctx.fill(path, 'evenodd')` on
+  canvas. Nonzero fills the A's triangular counter solid.
+- **The R has no counter subpath.** Its horizontal cut is *open on the left* —
+  the outline doubles back into itself rather than enclosing a hole. That is how
+  the artwork is drawn. Do not "close" it. This is also why there are 5
+  subpaths (L, Y, R, A, A-counter) and not 6.
+
+One trap worth recording: `find_contours` works in pixel-**centre** space while
+every rasteriser works in pixel-**corner** space. Without that +0.5 conversion
+the trace sits half a pixel light and IoU caps at 0.982 no matter how many
+vertices you throw at it.
+
+### Single source of truth
+
+`src/config/wordmark.ts` holds the path. Everything else transforms it:
+
+| Surface | How it consumes the canonical path |
+| --- | --- |
+| Hero | `LyraWordmark` renders it as inline SVG, `fillRule="evenodd"` |
+| CTA / outro | the same component, a different width class |
+| Can label | `canLabelTexture` draws it with `new Path2D(...)` — rotate –90° plus a **uniform** scale, never a stretch or a shear |
+| Standalone asset | `public/lyra-wordmark.svg`, generated from the same string |
+
+`Path2D` rather than loading the SVG as an `Image`: it is synchronous, so a
+flavour swap can never show a frame with the mark missing.
+
+The path string in `wordmark.ts` and the one in `public/lyra-wordmark.svg` are
+**byte-identical** (1219 chars each) and must stay that way.
+
+### Sizing
+
+The traced mark is 5.2646:1 where the earlier inaccurate reconstruction was
+4.41:1, so it is wider at equal height. Sizing preserves **cap height**, not
+width — the letters keep their optical weight and the mark is simply wider,
+because the real artwork is.
+
+| Instance | Width @1440 | Cap height |
+| --- | --- | --- |
+| Hero | ~420 px | 79.8 px |
+| CTA | ~397 px | 75.4 px |
+| Can | `BRAND_LENGTH = 0.64` of label height | ~ |
+
+`BRAND_LENGTH` went 0.60 → 0.64 when the mark was re-traced: at equal length
+the true mark sits ~19% narrower across the cylinder. It is a uniform scale on
+the canonical artwork and it keeps the mark clear of both the flavour signature
+and the microcopy.
+
+---
+
+## The packaging system
+
+Three variants, ~80% shared language. Identical ground treatment, identical
+hierarchy, the canonical wordmark at identical scale and placement, `NAME / NN`
+near the top and `COSMIC ENERGY ~ 355 ML` near the bottom — both in the mono
+face. **The wordmark is never used for micro labels.**
+
+The wordmark's centre sits at 0.45 of the sleeve rather than dead centre: the
+signature owns the lower third, and a centred mark of this length would have the
+graphic running straight through the L. Separate zones mean neither has to be
+faded or interrupted.
+
+`MATERIAL` in `canLabelTexture.ts` holds roughness/metalness per mark in one
+table, which is what separates a printed coating (0x6E / 0x38) from pearl foil
+(0x2A / 0xF2). `envMapIntensity` on the label material is the lever that widens
+the gap: reflection is gated by metalness, so raising it lifts the foil hard and
+the printed ground barely at all.
+
+### The three signatures
+
+Each variant gets **one** graphic, in the lower third. They replaced the old
+diagonal foil band rather than being added alongside it, so there is no second
+competing accent system. Every coordinate is a literal — there is no randomness
+in the file, seeded or otherwise, so every reload produces identical bytes.
+
+| | Base | Signature |
+| --- | --- | --- |
+| **NOVA / 01** | near-black, restrained dark cobalt | a compressed **ignition fracture**: one continuous crack, three irregular jogs, tapered at both ends, with a single spur. Drawn as a filled ribbon, not a stroke, so it can open and close — a constant-width stroke reads as a drawn line. |
+| **COMET / 02** | near-black, restrained deep teal/navy | one **swept trajectory**: an aerodynamic arc as a tapered ribbon (thick head, vanishing tail), one restrained secondary hairline, and seven particles continuing off the tail. Smoother and faster than NOVA by construction — one curve, no vertices. |
+| **VOID / 03** | near-black, restrained black-plum | a **broken orbital band** whose centre sits below the sleeve, so only its upper arc crosses. Three arcs with two deliberate interruptions; the negative space is the point. The quietest of the three. |
+
+Accent coverage runs roughly 8–12% of the visible surface — deliberately at the
+low end. If a flavour graphic pulls the eye before the wordmark it is too
+strong.
+
+### Dev flags
+
+`src/config/devFlags.ts`. All inert on a normal load; none of them changes a
+shipped value.
+
+| Flag | Effect |
+| --- | --- |
+| `?capture=1` | deterministic hand-driven render loop |
+| `?neutral=1` | every chromatic light becomes white |
+| `?flavor=nova\|comet\|void` | pins the variant regardless of scroll |
+
+`?neutral=1&flavor=X` exists for one permanent quality gate: the three variants
+have to stay distinguishable **under neutral white light**. Being able to
+re-check that in one URL beats a pile of one-off console hacks.
 
 ---
 
@@ -929,11 +1064,16 @@ buffer and returns a black canvas — take best-of-3 by non-black pixel count.
 
 ## Remaining Work
 
-Structure, content and narrative are **complete**. Everything below is
-aesthetic polish, and all of it is optional — the site is recordable as it
-stands.
+Structure, content and narrative are **complete**. The product identity is
+complete. Everything below is aesthetic polish.
 
-1. **The can shoulder knuckle.** Where `BODY_PROFILE` turns from straight
+1. **Chapter 03 smoke — the next isolated polish task.** It was deliberately
+   left untouched by the Phase 8 product-identity pass and is the one remaining
+   piece of Flavor Nebulas that has not had a dedicated look. Treat it the way
+   the wordmark and the snap were treated: one scoped pass, its own QA
+   evidence, nothing else in the file tree. **Do not** fold it into another
+   change.
+2. **The can shoulder knuckle.** Where `BODY_PROFILE` turns from straight
    sidewall into the shoulder taper (around world Y 1.0–1.1) it reads as a
    flat, dark band under the current strip-light rig, most noticeable directly
    beneath the open aperture. Confirmed unrelated to the flap and present in
@@ -941,17 +1081,17 @@ stands.
    A fix belongs to a lighting/materials pass: re-check vertex-normal
    smoothing across the knuckle ring, or add fill from the strip-light rig at
    that angle. **Never** to the flap/lid code.
-2. **Chapter 05 snap and liquid, final taste pass.** Structurally correct,
+3. **Chapter 05 snap and liquid, final taste pass.** Structurally correct,
    deterministic and reversible, and verified live. What is left is judgment:
    whether the break reads sharply enough and whether the liquid holds up as a
    hero moment at full size. Levers: `CAN_RECOIL` + `RECOIL_*`, `FLAP_BREAK`,
    the `impact` decay in `easing.ts`, `RELEASE_VAPOR`, and the droplet block in
    `ReleaseBurst.tsx`. Change one at a time and re-scroll.
-3. ~~Optional nebula and station detail.~~ **Done** — see *Environment polish*
+4. ~~Optional nebula and station detail.~~ **Done** — see *Environment polish*
    above. Both environments now have real depth and material hierarchy;
    `NEBULA_GAIN` and `STATION_GAIN` are the dials if either should read
    louder or quieter.
-4. **Optional:** `docs/qa/final/6-ch05-snap.png` and `7-ch05-release.png`
+5. **Optional:** `docs/qa/final/6-ch05-snap.png` and `7-ch05-release.png`
    predate Phase 4 and still show the old snap. `docs/qa/release/`,
    `docs/qa/structure/` and `docs/qa/final-polish/` are the authoritative
    records now.
@@ -1001,6 +1141,7 @@ rebuilt lid or the scroll calibration — see *Locked Visual Decisions*.
 
 | Path | What it shows |
 | --- | --- |
+| `docs/qa/final-polish/product-identity/` | **The Phase 8 product identity.** `neutral/lineup.png` is the primary approval artifact — three cans, identical camera and neutral white light. `reference/` holds the source JPEG and the trace validation (side-by-side, 50/50 overlay, absolute difference, shipped-path render). Then `wordmark/`, `in-site/` and `before-after/`. |
 | `docs/qa/release/` | **The Phase 4 snap and release — start here for Chapter 05.** `traverse-1190-1325.gif` is the whole beat at the shipped pace: 88 frames, 3.0 s, ~45 logical vh per second, sampled twice as finely through the snap so the timing is honest. Then `01-tension-1238`, `02-snap-1242`, `03-snap-plus2-1244`, `04-burst-1258`. |
 | `docs/qa/release/05-reverse-sealed-1180` + `06-forward-1180` | vh 1180 reached by scrubbing *back* from 1305, and by driving *forward* from 1090. The two files are **byte-identical** — same SHA-256. That is the reversibility proof. |
 | `docs/qa/polish/x1..x4` | The Station – Release handoff: the ring still visible behind the can at 1126 and 1150. |

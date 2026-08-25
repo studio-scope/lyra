@@ -1,27 +1,22 @@
 .wordmark {
-  display: inline-block;
-  font-family: var(--font-wordmark);
-  font-weight: 700;
-  line-height: 0.9;
-  text-transform: uppercase;
-  /* Syncopate is drawn wide; -0.075em is what locks the four letters into a
-     single mass rather than four separate shapes. */
-  letter-spacing: -0.075em;
+  display: block;
+  /* The viewBox carries the aspect, so width alone sizes the mark. Height must
+     stay auto: the blade off the A lives inside the viewBox and a fixed height
+     would letterbox it. */
+  height: auto;
   color: var(--off-white);
-  transform: scaleX(1.04);
-  transform-origin: center;
-  /* The negative tracking eats space after the final A; this puts it back so
-     the mark centres optically rather than mathematically. */
-  padding-right: 0.075em;
-  white-space: nowrap;
 }
 
+/* The traced mark is 5.2646:1. Widths hold the *cap height* at the values the
+   previous setting had (hero 78.9px, CTA 75.4px at 1440), so the letters keep
+   their optical weight and the hero-over-CTA hierarchy is unchanged — the mark
+   is simply wider than the old inaccurate one, because the real artwork is.
+     hero  78.9 x 5.2646 = 415px    CTA  75.4 x 5.2646 = 397px  */
 .hero {
-  font-size: var(--step-wordmark-lg);
+  width: clamp(15.5rem, 28.85vw, 25.9rem);
 }
 
-/* Closing lockup. Sized to render ~333px wide at a 1440px viewport, which is
-   what gives it enough mass to sit above the headline in the hierarchy. */
+/* Closing lockup. Sits above the headline in the hierarchy. */
 .cta {
-  font-size: clamp(3rem, 6.9vw, 6.4rem);
+  width: clamp(14.8rem, 27.57vw, 24.8rem);
 }

@@ -119,15 +119,23 @@ export const CanModel = forwardRef<CanHandle, Props>(function CanModel({ flavor 
     // Tinted satin aluminium. Roughness comes from the brushed map; `sheen`
     // carries the flavour's secondary reflection tint at grazing angles, which
     // is what keeps the body from reading as flat black.
+    //
+    // The shoulder knuckle is the reason `sheen` and `clearcoat` sit where they
+    // do. As the wall turns into the taper its reflection vector sweeps off the
+    // vertical strip lights and into the dark upper hemisphere, so a pure
+    // metal read goes flat exactly there. `sheen` is a grazing-angle term and
+    // the shoulder is nothing but grazing angles, so lifting it — with a
+    // tighter clearcoat under it — restores highlight continuity across the
+    // turn without touching the sidewall, the silhouette or the lighting rig.
     const aluminium = new THREE.MeshPhysicalMaterial({
       metalness: 0.88,
       roughness: 0.29,
       roughnessMap: brushed,
-      clearcoat: 0.42,
-      clearcoatRoughness: 0.2,
-      sheen: 0.35,
-      sheenRoughness: 0.55,
-      envMapIntensity: 0.85,
+      clearcoat: 0.5,
+      clearcoatRoughness: 0.16,
+      sheen: 0.5,
+      sheenRoughness: 0.42,
+      envMapIntensity: 0.95,
     });
     // The rolled seam sits a step brighter than the body — enough to tell the
     // eye this is a can and not a tube, not so much that it reads as a chrome
@@ -135,10 +143,10 @@ export const CanModel = forwardRef<CanHandle, Props>(function CanModel({ flavor 
     const rimMetal = new THREE.MeshPhysicalMaterial({
       color: '#4A4A55',
       metalness: 0.92,
-      roughness: 0.43,
+      roughness: 0.36,
       clearcoat: 0.22,
-      clearcoatRoughness: 0.3,
-      envMapIntensity: 0.55,
+      clearcoatRoughness: 0.26,
+      envMapIntensity: 0.7,
     });
     // Brushed dark titanium lid.
     // Brushed dark titanium. The brush map runs radially on a lathe lid, which
@@ -206,16 +214,21 @@ export const CanModel = forwardRef<CanHandle, Props>(function CanModel({ flavor 
     });
 
     // Printed sleeve. `roughness` and `metalness` both sit at 1 so the
-    // generated maps are the sole authority — that is what lets the foil band
-    // behave as metal while the ink around it does not.
+    // generated maps are the sole authority — that is what lets the wordmark
+    // behave as pearl foil while the coating around it does not.
+    //
+    // `envMapIntensity` is the lever that separates the two. Reflection is
+    // gated by metalness, so raising it lifts the foil hard and the printed
+    // ground barely at all: the wordmark gains the strip lights, the coating
+    // stays a coating. The clearcoat above them both is the varnish.
     const label = new THREE.MeshPhysicalMaterial({
       metalness: 1,
       roughness: 1,
-      clearcoat: 0.4,
-      clearcoatRoughness: 0.18,
+      clearcoat: 0.45,
+      clearcoatRoughness: 0.14,
       sheen: 0.3,
       sheenRoughness: 0.55,
-      envMapIntensity: 0.95,
+      envMapIntensity: 1.15,
     });
 
     return {

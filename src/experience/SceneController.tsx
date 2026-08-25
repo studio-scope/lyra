@@ -20,6 +20,7 @@ import { FLAVORS, type FlavorId } from '../config/flavors';
 import { flavorAt, pulse, sampleNumber, sampleVec3, type Vec3 } from '../config/timeline';
 import { clamp01, smoothstep } from '../config/easing';
 import * as K from '../config/choreography';
+import { NEUTRAL_LIGHT } from '../config/devFlags';
 import { PRODUCT_LAYER } from './productLayer';
 
 /**
@@ -40,6 +41,9 @@ function damp(current: number, target: number, lambda: number, dt: number) {
 interface Props {
   flavor: FlavorId;
 }
+
+/** Plain white, used only when `?neutral=1` strips the chromatic lights. */
+const NEUTRAL = '#FFFFFF';
 
 export function SceneController({ flavor }: Props) {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
@@ -285,16 +289,21 @@ export function SceneController({ flavor }: Props) {
     }
 
     const key = sampleNumber(K.KEY_LIGHT, vh);
+    // `?neutral=1` swaps every chromatic light for white so the three variants
+    // can be judged on their printing alone. Off on any normal load.
+    const accentColour = NEUTRAL_LIGHT ? NEUTRAL : FLAVORS[activeFlavor].keyLight;
+    const rimColour = NEUTRAL_LIGHT ? NEUTRAL : FLAVORS[activeFlavor].rimLight;
+
     if (keyLightRef.current) keyLightRef.current.intensity = 2.3 * key;
     if (accentLightRef.current) {
       accentLightRef.current.intensity = 2.1 * key;
-      accentLightRef.current.color.set(FLAVORS[activeFlavor].keyLight);
+      accentLightRef.current.color.set(accentColour);
     }
     if (rimLightRef.current) rimLightRef.current.intensity = 0.55 * key;
 
     // Environment lights keep their original flavour tinting.
-    if (envAccentRef.current) envAccentRef.current.color.set(FLAVORS[activeFlavor].keyLight);
-    if (envRimRef.current) envRimRef.current.color.set(FLAVORS[activeFlavor].rimLight);
+    if (envAccentRef.current) envAccentRef.current.color.set(accentColour);
+    if (envRimRef.current) envRimRef.current.color.set(rimColour);
 
     // Short exposure pulses only — the baseline never drifts.
     gl.toneMappingExposure = 1 + flash * 0.55 + warp * 0.18;

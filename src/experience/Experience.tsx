@@ -19,10 +19,7 @@ interface Props {
   flavor: FlavorId;
 }
 
-/** `?capture=1` — see the `preserveDrawingBuffer` note on the Canvas below. */
-const CAPTURE_MODE =
-  typeof window !== 'undefined' &&
-  new URLSearchParams(window.location.search).has('capture');
+import { CAPTURE_MODE, NEUTRAL_LIGHT } from '../config/devFlags';
 
 /**
  * Procedural studio environment. Rebaked only when the flavour changes — which
@@ -30,8 +27,12 @@ const CAPTURE_MODE =
  */
 function StudioEnvironment({ flavor }: { flavor: FlavorId }) {
   const palette = FLAVORS[flavor].palette;
+  // `?neutral=1` renders the two chromatic strips white, so the only thing
+  // separating the three variants in frame is what is printed on them.
+  const stripA = NEUTRAL_LIGHT ? '#FFFFFF' : palette.ultraviolet;
+  const stripB = NEUTRAL_LIGHT ? '#FFFFFF' : palette.cobalt;
   return (
-    <Environment key={flavor} resolution={256} frames={1}>
+    <Environment key={`${flavor}-${NEUTRAL_LIGHT ? 'n' : 'c'}`} resolution={256} frames={1}>
       {/* A cylindrical metal product wants tall narrow strip lights, not broad
           softboxes: each strip becomes one crisp vertical specular band, which
           is what makes the silhouette read as aluminium. */}
@@ -67,7 +68,7 @@ function StudioEnvironment({ flavor }: { flavor: FlavorId }) {
       <Lightformer
         form="rect"
         intensity={3.6}
-        color={palette.ultraviolet}
+        color={stripA}
         position={[-4.1, 0.6, -1.1]}
         rotation={[0, Math.PI / 2.3, 0]}
         scale={[0.55, 6.5, 1]}
@@ -75,7 +76,7 @@ function StudioEnvironment({ flavor }: { flavor: FlavorId }) {
       <Lightformer
         form="rect"
         intensity={2.5}
-        color={palette.cobalt}
+        color={stripB}
         position={[4.1, -0.4, -1.3]}
         rotation={[0, -Math.PI / 2.3, 0]}
         scale={[0.45, 6.5, 1]}
