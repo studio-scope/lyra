@@ -226,16 +226,21 @@ export const ReleaseBurst = forwardRef<ReleaseBurstHandle>(function ReleaseBurst
     });
 
     // The first drops out of the aperture are the ones the pressure actually
-    // threw, so they run a little heavier than the ones that merely follow.
-    // Applied to whichever three the seeded layout launched first rather than
-    // to fixed indices, so the weight always lands on the leading edge of the
-    // burst. Sizes only — count, speed, direction and lifetime are untouched,
-    // so the field is no taller, no fuller and no longer than it was.
+    // threw, so they leave first and they leave heavier. Applied to whichever
+    // three the seeded layout launched first rather than to fixed indices, so
+    // the weight always lands on the leading edge of the burst.
+    //
+    // Their launch windows are pinned to the very start of the flow: the whole
+    // point of the beat is that you can see three droplets come *out of the
+    // opening* while the mist is still bright, rather than finding them already
+    // mid-air once the puff has cleared. Count, speed, direction and lifetime
+    // are untouched, so the field is no taller, no fuller and no longer.
     [...drops]
       .sort((a, b) => a.launch - b.launch)
       .slice(0, 3)
       .forEach((d, rank) => {
-        d.size *= 1.26 - rank * 0.06;
+        d.size *= 1.5 - rank * 0.09;
+        d.launch = rank * 0.025;
       });
 
     /* ---- shared liquid material ------------------------------------- */
@@ -451,7 +456,9 @@ export const ReleaseBurst = forwardRef<ReleaseBurstHandle>(function ReleaseBurst
           // A touch of ellipticity so it never reads as a clean CSS circle.
           shockMesh.scale.set(spread, spread * (0.82 + shock * 0.1), 1);
           built.shockMaterial.uniforms.uProgress.value = shock;
-          built.shockMaterial.uniforms.uOpacity.value = (1 - shock) * (1 - shock) * 0.9;
+          // Hot at the bottom of the track, gone quickly. The ring is the
+          // loudest thing in the frame for about one vh and then it is not.
+          built.shockMaterial.uniforms.uOpacity.value = (1 - shock) * (1 - shock) * 1.3;
           shockMesh.visible = shock > 0.004 && shock < 0.997;
         }
 
@@ -462,13 +469,14 @@ export const ReleaseBurst = forwardRef<ReleaseBurstHandle>(function ReleaseBurst
           // fade — the puff is already wide by the time it goes.
           const expansion = clamp01(1 - vapor) * 0.85 + 0.15;
           built.vaporMaterial.uniforms.uProgress.value = expansion;
-          // The first puff — tight, dense, still on the metal — runs a third
-          // hotter than the dispersed mist it becomes. Keyed off the expansion
-          // rather than off scroll position, so the boost is spent by the time
-          // the cloud has opened up and the approved tail is untouched. Same
-          // particles, same duration; only the leading edge gets the weight.
-          const punch = 1 + 0.34 * (1 - smoothstep(0.15, 0.5, expansion));
-          built.vaporMaterial.uniforms.uOpacity.value = vapor * 0.62 * punch;
+          // The first puff — tight, dense, still on the metal — runs far hotter
+          // than the dispersed mist it becomes, and the boost decays over a
+          // narrower band so it reads as a burst rather than a bright cloud.
+          // Keyed off the expansion rather than off scroll position, so it is
+          // spent by the time the cloud has opened up and the approved tail is
+          // untouched. Same particles, same duration; only the front gets it.
+          const punch = 1 + 0.85 * (1 - smoothstep(0.15, 0.4, expansion));
+          built.vaporMaterial.uniforms.uOpacity.value = vapor * 0.66 * punch;
           vaporPoints.visible = vapor > 0.004;
         }
 
@@ -477,7 +485,7 @@ export const ReleaseBurst = forwardRef<ReleaseBurstHandle>(function ReleaseBurst
         if (glowMesh) {
           const s = 0.17 + pressure * 0.05;
           glowMesh.scale.set(s, s * 0.62, 1);
-          built.glowMaterial.uniforms.uOpacity.value = pressure * 0.42;
+          built.glowMaterial.uniforms.uOpacity.value = pressure * 0.58;
           glowMesh.visible = pressure > 0.004;
         }
       },

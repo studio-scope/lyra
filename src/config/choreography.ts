@@ -128,12 +128,13 @@ export const TAB_LIFT: NumberTrack = [
   // BEAT A — TENSION. Sealed hold while the composition settles.
   { at: 1192, v: 0, ease: 'hold' },
   { at: 1214, v: 0.55, ease: 'inOut' },
-  { at: 1230, v: 0.93, ease: 'inOut' },
+  { at: 1228, v: 0.93, ease: 'inOut' },
   // The tab finishes its travel with the flap still sealed ...
-  { at: 1234, v: 1, ease: 'out' },
-  // ... and then nothing on the can moves at all for 8 vh. This dead beat is
+  { at: 1231, v: 1, ease: 'out' },
+  // ... and then nothing on the can moves at all for 11 vh. This dead beat is
   // the whole reason the break lands: the eye settles on a static, fully loaded
-  // mechanism, and the only thing still changing is the pressure under it.
+  // mechanism, and the only things still changing are the pressure under the
+  // flap and the flap's own outward bow against it.
   { at: 1242, v: 1, ease: 'linear' },
   // BEAT B — the score lets go. 1.055 x TAB_MAX_ROTATION is ~1.7 degrees past
   // the resting travel: a mechanical jump, not a bounce. One small counter and
@@ -182,21 +183,43 @@ export const CUT_EDGE_FLASH: NumberTrack = [
 /**
  * Can recoil at the break.
  *
- * Peaks ~4.7px on screen in the release close-up (was ~3.5) and is fully
- * settled 16 vh later — pressurised, not struck. The rise is 2 vh, so on
- * screen it is a single-frame kick; the counter-swing and the small second
- * bounce are what the eye actually reads as mass. `SceneController` adds this
- * on top of the locked position track, and the *camera* never moves.
+ * Unitless: `SceneController` maps it through `RECOIL_RISE` / `RECOIL_PUSH` /
+ * `RECOIL_TILT` below. Peak 1.35 lands ~12px of lift, ~0.75 degrees of tilt and
+ * a hair of push toward camera — the can is shoved by what leaves it.
+ *
+ * The rise is 2 vh, so on screen it is a single-frame kick. One counter-swing
+ * and it is done: no second bounce, because a second bounce on a 12px throw is
+ * what makes a can read as rubber. `SceneController` adds this on top of the
+ * locked position track, and the *camera* never moves.
  */
 export const CAN_RECOIL: NumberTrack = [
   { at: 0, v: 0 },
   { at: 1242, v: 0, ease: 'hold' },
   { at: 1244, v: 1.35, ease: 'out' },
-  { at: 1248, v: -0.42, ease: 'inOut' },
-  { at: 1253, v: 0.12, ease: 'inOut' },
-  { at: 1258, v: 0, ease: 'inOut' },
+  { at: 1248, v: -0.38, ease: 'inOut' },
+  { at: 1254, v: 0, ease: 'inOut' },
   { at: 1450, v: 0, ease: 'hold' },
 ];
+
+/**
+ * How `CAN_RECOIL` reaches the rig. Measured at the release camera, where the
+ * frame is 2.04 world units tall across 900px — 441 px per unit.
+ *
+ *   rise  0.026 * 1.35 = 0.035 units = ~15 px of lift
+ *   tilt  0.0097 * 1.35 = 0.0131 rad = 0.75 degrees
+ *   push  0.011 * 1.35 = 0.015 units toward camera, ~0.4% apparent scale
+ *
+ * The rise is deliberately larger than the number you want to see. The camera
+ * is still easing in across 1240-1262, and that push carries the can *down* the
+ * frame by ~10px over the same window, so a 15px object lift nets out at the
+ * 10-14px on-screen kick the shot is cut for.
+ *
+ * The tilt is what sells it. Pure translation reads as the whole shot nudging;
+ * a rotation about X reads as the *object* being kicked.
+ */
+export const RECOIL_RISE = 0.026;
+export const RECOIL_PUSH = 0.011;
+export const RECOIL_TILT = 0.0097;
 
 /* ---------------------------------------------------------------- */
 /* CAMERA                                                            */
@@ -510,9 +533,9 @@ export const RELEASE_FRAMING = {
 export const RELEASE_PRESSURE: NumberTrack = [
   { at: 0, v: 0 },
   { at: 1192, v: 0, ease: 'hold' },
-  { at: 1230, v: 0.86, ease: 'in' },
+  { at: 1228, v: 0.84, ease: 'in' },
   // Still creeping upward through the dead hold. With the tab, the flap and the
-  // camera all stationary between 1234 and 1242, this is the only thing on
+  // camera all stationary between 1231 and 1242, this is the only thing on
   // screen that changes — which keeps the pause tense instead of dead.
   { at: 1242, v: 1, ease: 'linear' },
   // Gone across the break itself: the pressure does not fade, it escapes.
@@ -542,13 +565,13 @@ export const RELEASE_SHOCK: NumberTrack = [
  */
 export const RELEASE_VAPOR: NumberTrack = [
   { at: 0, v: 0 },
-  // Mist starts the instant the score gives way, at the aperture. The attack is
-  // 3 vh rather than 7, so the first puff arrives *with* the snap instead of
-  // trailing it; the tail keeps its shape and ends 4 vh earlier than before.
+  // Mist starts the instant the score gives way, at the aperture. A 2 vh attack
+  // — one third of the break — so the puff is at full strength while the flap
+  // is still folding. That is the difference between a psht and a fade-in.
   { at: 1242, v: 0, ease: 'hold' },
-  { at: 1245, v: 1, ease: 'out' },
-  { at: 1258, v: 0.55, ease: 'linear' },
-  { at: 1276, v: 0, ease: 'inOut' },
+  { at: 1244, v: 1, ease: 'out' },
+  { at: 1256, v: 0.5, ease: 'linear' },
+  { at: 1274, v: 0, ease: 'inOut' },
   { at: 1450, v: 0, ease: 'hold' },
 ];
 
@@ -561,7 +584,7 @@ export const RELEASE_FLOW: NumberTrack = [
   { at: 0, v: 0 },
   // BEAT C — RELEASE. Fast expansion out of the break, then the body gives way
   // to droplets and the whole field is dissipating before the CTA takes over.
-  { at: 1246, v: 0, ease: 'hold' },
+  { at: 1244, v: 0, ease: 'hold' },
   { at: 1262, v: 0.45, ease: 'out' },
   { at: 1286, v: 0.82, ease: 'linear' },
   { at: 1312, v: 1, ease: 'out' },
@@ -571,8 +594,10 @@ export const RELEASE_FLOW: NumberTrack = [
 /** Overall presence: in behind the break, out into the CTA's liquid field. */
 export const RELEASE_PRESENCE: NumberTrack = [
   { at: 0, v: 0 },
-  { at: 1246, v: 0, ease: 'hold' },
-  { at: 1258, v: 1, ease: 'out' },
+  // Up with the vapour, not after it: the first droplets have to be visible
+  // leaving the aperture while the mist is still bright.
+  { at: 1244, v: 0, ease: 'hold' },
+  { at: 1254, v: 1, ease: 'out' },
   { at: 1298, v: 1, ease: 'linear' },
   { at: 1318, v: 0, ease: 'inOut' },
   { at: 1450, v: 0, ease: 'hold' },

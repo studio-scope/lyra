@@ -171,16 +171,23 @@ export function SceneController({ flavor }: Props) {
     sampleVec3(K.CAN_ROTATION, vh, scratch.canRot);
     const scale = sampleNumber(K.CAN_SCALE, vh);
     // Recoil rides on top of the locked position track and returns to zero, so
-    // the approved composition is reacted to rather than moved. ~3px on screen.
+    // the approved composition is reacted to rather than moved. It carries a
+    // rotation as well as a lift: pure translation reads as the shot nudging,
+    // while a tilt about X reads as the can itself being kicked by what just
+    // left it. Peaks ~12px and 0.75 degrees. See RECOIL_* in choreography.ts.
     const recoil = sampleNumber(K.CAN_RECOIL, vh);
     const rig = rigRef.current;
     if (rig) {
       rig.position.set(
         scratch.canPos[0],
-        scratch.canPos[1] + recoil * 0.007,
-        scratch.canPos[2] - recoil * 0.004,
+        scratch.canPos[1] + recoil * K.RECOIL_RISE,
+        scratch.canPos[2] - recoil * K.RECOIL_PUSH,
       );
-      rig.rotation.set(...scratch.canRot);
+      rig.rotation.set(
+        scratch.canRot[0] + recoil * K.RECOIL_TILT,
+        scratch.canRot[1],
+        scratch.canRot[2],
+      );
       rig.scale.setScalar(scale);
       rig.updateMatrixWorld();
     }

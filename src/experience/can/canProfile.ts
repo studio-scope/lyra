@@ -140,10 +140,13 @@ export const PANEL_MAX_ROTATION = 1.15;
 
 /**
  * How far the sealed flap bows *outward* under full tab tension, in radians.
- * A fifth of a degree — invisible as a pose, readable as pressure once the
- * strip light rakes across it, and it makes the snap that follows land.
+ *
+ * 0.012 rad is 0.69 degrees. Still far too small to read as the flap opening,
+ * but enough that the strip light visibly walks across the panel during the
+ * dead hold — the one thing that tells the eye the seal is loaded rather than
+ * simply waiting. Anything past ~0.02 starts to look like a leak.
  */
-export const PANEL_PRELOAD = 0.0038;
+export const PANEL_PRELOAD = 0.012;
 /**
  * Normalised tab lift at which the nose has actually reached the flap. Below
  * this the aperture stays sealed, which is what keeps the closed state clean.

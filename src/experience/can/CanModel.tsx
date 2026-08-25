@@ -288,7 +288,7 @@ export const CanModel = forwardRef<CanHandle, Props>(function CanModel({ flavor 
         }
 
         // Freshly exposed aluminium catches the light for a beat.
-        materials.cutEdge.emissiveIntensity = cutEdgeFlash * 2.2;
+        materials.cutEdge.emissiveIntensity = cutEdgeFlash * 3.4;
       },
       setOpacity(v: number) {
         if (Math.abs(v - opacityRef.current) < 0.001) return;
