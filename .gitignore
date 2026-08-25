@@ -29,10 +29,8 @@ docs/qa/wip/
 # deliberately ignored, so committing them would duplicate megabytes for nothing.
 docs/qa/**/*.zip
 
-# Screen recordings, probe generations and QA composites. The only video the
-# site actually ships is the Open & Pour plate, which is a real production
-# asset rather than a recording, so it is committed explicitly.
+# Screen recordings, probe generations and QA composites. The site ships no
+# video at all: Chapter 05 is rendered live in the scene.
 *.mp4
 *.mov
 *.webm
-!public/assets/open-pour/open-pour-final.mp4

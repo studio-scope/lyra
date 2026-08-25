@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
  * Development controls.
  *
  * Everything is off by default so the recording state is clean. Press `D` for
- * the readout panel, `V` for the Open & Pour video-slot outline.
+ * the readout panel, `V` for the Open & Pour release annotation.
  */
 
 export const debugState = {

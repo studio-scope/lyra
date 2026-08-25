@@ -8,7 +8,6 @@ import {
   LABEL,
   LID_PROFILE,
   LID_Y,
-  PANEL_BREAK_AT,
   PANEL_MAX_ROTATION,
   PANEL_RECESS,
   RIM_PROFILE,
@@ -21,7 +20,7 @@ import {
   buildScoreRing,
   buildStayTab,
 } from './canProfile';
-import { clamp01, smoothstep } from '../../config/easing';
+import { clamp01, ease } from '../../config/easing';
 import {
   bodyColours,
   createBrushedRoughness,
@@ -43,7 +42,12 @@ import { PRODUCT_LAYER } from '../productLayer';
 
 export interface CanHandle {
   group: THREE.Group | null;
-  setTabLift(v: number): void;
+  /**
+   * The tab and the flap are driven separately. Deriving one from the other
+   * forces the break to inherit the tab's pacing, and the break has to be much
+   * faster than the lift that causes it.
+   */
+  setLidState(tabLift: number, flapBreak: number, cutEdgeFlash: number): void;
   setOpacity(v: number): void;
 }
 
@@ -165,6 +169,9 @@ export const CanModel = forwardRef<CanHandle, Props>(function CanModel({ flavor 
       metalness: 0.95,
       roughness: 0.22,
       envMapIntensity: 1,
+      // Driven by CUT_EDGE_FLASH at the break; zero at every other moment.
+      emissive: new THREE.Color('#9FB4FF'),
+      emissiveIntensity: 0,
     });
     // Score line. It sits physically above the lid, so no offset trickery.
     const score = new THREE.MeshBasicMaterial({
@@ -247,18 +254,25 @@ export const CanModel = forwardRef<CanHandle, Props>(function CanModel({ flavor 
       get group() {
         return groupRef.current;
       },
-      setTabLift(v: number) {
-        const lift = clamp01(v);
+      setLidState(tabLift: number, flapBreak: number, cutEdgeFlash: number) {
+        const lift = clamp01(tabLift);
         // Pure rotation about the rivet — no translation at all, so the tab
         // pivots on the lid the way a real stay-tab does instead of rising off
-        // it.
-        if (tabRef.current) tabRef.current.rotation.x = lift * TAB_MAX_ROTATION;
-        // The flap holds still until the nose has travelled far enough to
-        // actually reach it, so the closed can shows nothing but a score line.
-        // After that the score breaks and the flap swings down into the can on
-        // its hinge, opening the aperture for good.
-        const press = smoothstep(PANEL_BREAK_AT, 1, lift);
-        if (panelRef.current) panelRef.current.rotation.x = press * PANEL_MAX_ROTATION;
+        // it. A hair of flex near full tension so the metal reads as loaded
+        // rather than as a rigid lever.
+        const flex = Math.sin(lift * Math.PI) * 0.012;
+        if (tabRef.current) tabRef.current.rotation.x = lift * TAB_MAX_ROTATION + flex;
+
+        // The break runs on its own track through `impact`: already past the
+        // resting angle while a smoothstep would still be accelerating, then
+        // ~12% overshoot and a ring-down. The flap never deforms — this is one
+        // rigid rotation about the hinge, just badly behaved on purpose.
+        if (panelRef.current) {
+          panelRef.current.rotation.x = ease('impact', clamp01(flapBreak)) * PANEL_MAX_ROTATION;
+        }
+
+        // Freshly exposed aluminium catches the light for a beat.
+        materials.cutEdge.emissiveIntensity = cutEdgeFlash * 2.2;
       },
       setOpacity(v: number) {
         if (Math.abs(v - opacityRef.current) < 0.001) return;

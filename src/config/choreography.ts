@@ -112,14 +112,59 @@ export const CAN_OPACITY: NumberTrack = [
   { at: 1450, v: 0, ease: 'hold' },
 ];
 
-/** Pull-tab lift, 0 = closed, 1 = fully broken seal. */
+/**
+ * Pull-tab lift, 0 = closed, 1 = fully pressed.
+ *
+ * Re-authored around the snap. The whole point is contrast: the tab spends a
+ * long, slow stretch building tension against a sealed flap, and the flap then
+ * gives way in a fraction of that time. Anticipation is 44 vh; the break is 14.
+ */
 export const TAB_LIFT: NumberTrack = [
   { at: 0, v: 0 },
-  { at: 1152, v: 0, ease: 'hold' },
-  { at: 1196, v: 0.35, ease: 'inOut' },
-  { at: 1228, v: 0.55, ease: 'linear' },
-  { at: 1252, v: 1, ease: 'expoOut' },
+  // Sealed hold — the composition settles before anything moves.
+  { at: 1189, v: 0, ease: 'hold' },
+  // Tension.
+  { at: 1216, v: 0.52, ease: 'inOut' },
+  { at: 1233, v: 0.86, ease: 'inOut' },
+  // The press completes through the break.
+  { at: 1244, v: 1, ease: 'out' },
   { at: 1450, v: 1, ease: 'linear' },
+];
+
+/**
+ * The scored flap, driven independently of the tab.
+ *
+ * Deliberately a bare linear ramp: `CanModel` runs it through the `impact`
+ * easing, so the shape of the break lives with the hardware rather than being
+ * baked into keyframes that would have to be hand-tuned to overshoot.
+ */
+export const FLAP_BREAK: NumberTrack = [
+  { at: 0, v: 0 },
+  { at: 1233, v: 0, ease: 'hold' },
+  { at: 1247, v: 1, ease: 'linear' },
+  { at: 1450, v: 1, ease: 'hold' },
+];
+
+/** Bright edge on the freshly cut aluminium, for a beat after the break. */
+export const CUT_EDGE_FLASH: NumberTrack = [
+  { at: 0, v: 0 },
+  { at: 1244, v: 0, ease: 'hold' },
+  { at: 1247, v: 1, ease: 'in' },
+  { at: 1256, v: 0, ease: 'out' },
+  { at: 1450, v: 0, ease: 'hold' },
+];
+
+/**
+ * Can recoil at the break. Peaks around 3px on screen and counter-settles
+ * through zero — pressurised, not struck.
+ */
+export const CAN_RECOIL: NumberTrack = [
+  { at: 0, v: 0 },
+  { at: 1245, v: 0, ease: 'hold' },
+  { at: 1249, v: 1, ease: 'out' },
+  { at: 1257, v: -0.34, ease: 'inOut' },
+  { at: 1268, v: 0, ease: 'inOut' },
+  { at: 1450, v: 0, ease: 'hold' },
 ];
 
 /* ---------------------------------------------------------------- */
@@ -377,21 +422,16 @@ export const KEY_LIGHT: NumberTrack = [
 /* ---------------------------------------------------------------- */
 
 /**
- * The exact frame the future pre-generated Open & Pour video must start on.
- * Everything that renders the placeholder reads these numbers, so the handoff
- * framing is provable rather than eyeballed.
+ * The locked Open & Pour framing. The release is rendered live in the scene, so
+ * these are the reference numbers the choreography and the development overlay
+ * are checked against — not a plate specification.
  */
 export const RELEASE_FRAMING = {
   cutPointVh: 1262,
   scrubStartVh: 1262,
   scrubEndVh: 1320,
-  /**
-   * Where the clip reaches its last frame. The remaining 10 vh up to
-   * `scrubEndVh` are the hand-off: the plate holds on frame 72 and fades while
-   * the CTA's liquid field rises, so the chapter never cuts from droplets to an
-   * empty scene.
-   */
-  videoEndVh: 1310,
+  /** Where the release has fully resolved and the CTA takes over. */
+  releaseEndVh: 1310,
   camera: { position: [0, 2.58, 3.42] as [number, number, number], fov: 30 },
   cameraTarget: [0, 1.05, 0] as [number, number, number],
   can: {
@@ -402,18 +442,81 @@ export const RELEASE_FRAMING = {
     scale: 1,
     tabLift: 1,
   },
-  /**
-   * The delivered plate. Authored as a 1600x900 master and cropped to the
-   * project's 1440x900 recording viewport; every frame is a keyframe so the
-   * scroll scrub can seek anywhere without waiting on a GOP.
-   */
-  plate: { aspect: '16:10', width: 1440, height: 900, fps: 24, frames: 73 },
 } as const;
+
+/* ---------------------------------------------------------------- */
+/* CHAPTER 05 - RELEASE ENERGY                                       */
+/* ---------------------------------------------------------------- */
+
+/**
+ * The release is rendered in the live scene, so these are ordinary tracks like
+ * every other effect: pure functions of scroll position, sampled once per frame
+ * and pushed straight into uniforms and transforms.
+ */
+
+/**
+ * Violet swell under the *sealed* flap. It builds through the tension phase and
+ * is gone by the time the score gives way — this is pressure showing through
+ * the metal, never anything escaping it.
+ */
+export const RELEASE_PRESSURE: NumberTrack = [
+  { at: 0, v: 0 },
+  { at: 1189, v: 0, ease: 'hold' },
+  { at: 1233, v: 1, ease: 'in' },
+  { at: 1246, v: 0, ease: 'out' },
+  { at: 1450, v: 0, ease: 'hold' },
+];
+
+/** Pressure ring, fired from the aperture the instant the score breaks. */
+export const RELEASE_SHOCK: NumberTrack = [
+  { at: 0, v: 0 },
+  { at: 1247, v: 0, ease: 'hold' },
+  { at: 1249, v: 0.1, ease: 'out' },
+  { at: 1276, v: 1, ease: 'linear' },
+  { at: 1450, v: 1, ease: 'hold' },
+];
+
+/**
+ * Directional vapour burst. Starts a beat *after* the flap has actually opened,
+ * so the eye reads the mechanism first and the escape second.
+ */
+export const RELEASE_VAPOR: NumberTrack = [
+  { at: 0, v: 0 },
+  { at: 1249, v: 0, ease: 'hold' },
+  { at: 1256, v: 1, ease: 'out' },
+  { at: 1272, v: 0.4, ease: 'linear' },
+  { at: 1286, v: 0, ease: 'inOut' },
+  { at: 1450, v: 0, ease: 'hold' },
+];
+
+/**
+ * Master progress for the liquid. The core form grows along it and every
+ * droplet reads its own launch window from it, so one track drives the whole
+ * field and the whole field stays reversible.
+ */
+export const RELEASE_FLOW: NumberTrack = [
+  { at: 0, v: 0 },
+  { at: 1253, v: 0, ease: 'hold' },
+  { at: 1268, v: 0.42, ease: 'out' },
+  { at: 1290, v: 0.8, ease: 'linear' },
+  { at: 1318, v: 1, ease: 'out' },
+  { at: 1450, v: 1, ease: 'hold' },
+];
+
+/** Overall presence: in behind the break, out into the CTA's liquid field. */
+export const RELEASE_PRESENCE: NumberTrack = [
+  { at: 0, v: 0 },
+  { at: 1253, v: 0, ease: 'hold' },
+  { at: 1266, v: 1, ease: 'out' },
+  { at: 1300, v: 1, ease: 'linear' },
+  { at: 1322, v: 0, ease: 'inOut' },
+  { at: 1450, v: 0, ease: 'hold' },
+];
 
 /** Flash pulses: [centre vh, rise, fall, strength]. */
 export const FLASHES: [number, number, number, number][] = [
   [93, 5, 16, 1], // ignition
   [566, 4, 14, 0.72], // NOVA -> COMET swap
   [699, 4, 14, 0.72], // COMET -> VOID swap
-  [1252, 6, 22, 0.6], // release cut point
+  [1248, 3, 11, 0.5], // the score gives way
 ];

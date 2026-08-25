@@ -15,7 +15,7 @@ import { Chapter06Cta } from './chapters/Chapter06Cta';
 
 import { useScrollDriver, useTimelineStatus } from './hooks/useScroll';
 import { useDebugControls } from './hooks/useDebug';
-import { TOTAL_VH } from './config/timeline';
+import { PHYSICAL_PAGE_VH } from './config/timeline';
 
 export function App() {
   useScrollDriver();
@@ -45,7 +45,7 @@ export function App() {
       <HudOverlay chapter={chapter} flavor={flavor} />
 
       {/* The page's entire scroll length. */}
-      <div className={styles.spacer} style={{ height: `${TOTAL_VH}vh` }} />
+      <div className={styles.spacer} style={{ height: `${PHYSICAL_PAGE_VH}vh` }} />
 
       {debug.panel && <DebugPanel />}
     </>

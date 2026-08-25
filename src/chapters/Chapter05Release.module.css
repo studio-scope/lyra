@@ -1,30 +1,8 @@
-/* ---- Open & Pour plate --------------------------------------------- */
-
 /*
- * Full-frame, edge to edge. The plate is an effects-only composite over a
- * render of the same can, so it has to sit in exactly the same place as the
- * canvas underneath it — any inset or letterbox would show as the cut point
- * landing on a different composition.
+ * Chapter 05 carries no plate and no overlay of its own — the release is
+ * rendered in the live scene. Everything below is the development annotation,
+ * toggled with `V` and hidden by default.
  */
-.plate {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.video {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  /* Authored at the recording viewport's aspect; `cover` keeps the vertical
-     framing intact and crops horizontally on anything wider. */
-  object-fit: cover;
-  border: 0;
-  background: transparent;
-  pointer-events: none;
-}
 
 .scrubTrack {
   position: relative;

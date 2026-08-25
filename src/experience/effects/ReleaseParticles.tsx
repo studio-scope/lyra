@@ -59,18 +59,28 @@ export const ReleaseParticles = forwardRef<ReleaseParticlesHandle>(
       const directions = new Float32Array(COUNT * 3);
       const seeds = new Float32Array(COUNT);
 
+      // Seeded, not `Math.random`: the cue has to land on the same pixels on
+      // every reload, or a QA capture of Chapter 05 is never reproducible.
+      let state = 0x9e3779b9;
+      const rand = () => {
+        state = (state + 0x6d2b79f5) >>> 0;
+        let t = Math.imul(state ^ (state >>> 15), 1 | state);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+
       for (let i = 0; i < COUNT; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const radius = Math.sqrt(Math.random()) * 0.24;
+        const angle = rand() * Math.PI * 2;
+        const radius = Math.sqrt(rand()) * 0.24;
         positions[i * 3 + 0] = Math.cos(angle) * radius;
-        positions[i * 3 + 1] = 1.25 + Math.random() * 0.03;
+        positions[i * 3 + 1] = 1.25 + rand() * 0.03;
         positions[i * 3 + 2] = Math.sin(angle) * radius;
 
-        const spread = 0.5 + Math.random() * 0.6;
+        const spread = 0.5 + rand() * 0.6;
         directions[i * 3 + 0] = Math.cos(angle) * spread;
-        directions[i * 3 + 1] = 0.9 + Math.random() * 0.8;
+        directions[i * 3 + 1] = 0.9 + rand() * 0.8;
         directions[i * 3 + 2] = Math.sin(angle) * spread;
-        seeds[i] = Math.random();
+        seeds[i] = rand();
       }
 
       const geometry = new THREE.BufferGeometry();

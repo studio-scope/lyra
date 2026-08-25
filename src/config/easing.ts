@@ -6,6 +6,7 @@ export type EaseName =
   | 'expoOut'
   | 'expoIn'
   | 'backOut'
+  | 'impact'
   | 'hold';
 
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -23,6 +24,20 @@ export const EASING: Record<EaseName, (t: number) => number> = {
     const c = 1.24;
     const p = t - 1;
     return 1 + (c + 1) * p * p * p + c * p * p;
+  },
+  /**
+   * A mechanical break, not an ease.
+   *
+   * A damped spring: the value is already past its target by the time a
+   * smoothstep would still be accelerating, overshoots roughly 12%, then rings
+   * down. This is what makes a scored panel read as *giving* rather than being
+   * lowered — the whole event is over in the first third of the interval and
+   * the rest is settle. Returns above 1 mid-flight, which is the point.
+   */
+  impact: (t) => {
+    if (t <= 0) return 0;
+    if (t >= 1) return 1;
+    return 1 - Math.exp(-6 * t) * Math.cos(9 * t);
   },
   hold: () => 0,
 };

@@ -6,6 +6,7 @@ import { CanModel, type CanHandle } from './can/CanModel';
 import { FlightTrail, type TrailHandle } from './effects/FlightTrail';
 import { WarpField, type WarpHandle } from './effects/WarpField';
 import { ReleaseParticles, type ReleaseParticlesHandle } from './effects/ReleaseParticles';
+import { ReleaseBurst, type ReleaseBurstHandle } from './effects/ReleaseBurst';
 import { StarLayers, type StarsHandle } from './environments/StarLayers';
 import { LyraConstellation, type ConstellationHandle } from './environments/LyraConstellation';
 import { AsteroidField, type AsteroidsHandle } from './environments/AsteroidField';
@@ -49,6 +50,7 @@ export function SceneController({ flavor }: Props) {
   const trailRef = useRef<TrailHandle>(null);
   const warpRef = useRef<WarpHandle>(null);
   const particlesRef = useRef<ReleaseParticlesHandle>(null);
+  const burstRef = useRef<ReleaseBurstHandle>(null);
   const starsRef = useRef<StarsHandle>(null);
   const constellationRef = useRef<ConstellationHandle>(null);
   const asteroidsRef = useRef<AsteroidsHandle>(null);
@@ -168,9 +170,16 @@ export function SceneController({ flavor }: Props) {
     sampleVec3(K.CAN_POSITION, vh, scratch.canPos);
     sampleVec3(K.CAN_ROTATION, vh, scratch.canRot);
     const scale = sampleNumber(K.CAN_SCALE, vh);
+    // Recoil rides on top of the locked position track and returns to zero, so
+    // the approved composition is reacted to rather than moved. ~3px on screen.
+    const recoil = sampleNumber(K.CAN_RECOIL, vh);
     const rig = rigRef.current;
     if (rig) {
-      rig.position.set(...scratch.canPos);
+      rig.position.set(
+        scratch.canPos[0],
+        scratch.canPos[1] + recoil * 0.007,
+        scratch.canPos[2] - recoil * 0.004,
+      );
       rig.rotation.set(...scratch.canRot);
       rig.scale.setScalar(scale);
       rig.updateMatrixWorld();
@@ -178,7 +187,11 @@ export function SceneController({ flavor }: Props) {
 
     const can = canRef.current;
     if (can) {
-      can.setTabLift(sampleNumber(K.TAB_LIFT, vh));
+      can.setLidState(
+        sampleNumber(K.TAB_LIFT, vh),
+        sampleNumber(K.FLAP_BREAK, vh),
+        sampleNumber(K.CUT_EDGE_FLASH, vh),
+      );
       can.setOpacity(sampleNumber(K.CAN_OPACITY, vh));
     }
 
@@ -238,6 +251,16 @@ export function SceneController({ flavor }: Props) {
     /* ---- overlays ------------------------------------------------------*/
     scratch.colourFlash.set(vh < 200 ? palette.luminous : palette.core);
     warpRef.current?.update(warp, flash, scratch.colourAccent, scratch.colourFlash, camera);
+
+    // The release is a scene effect like any other: sampled tracks in,
+    // transforms and uniforms out, nothing per-frame allocated, no React.
+    burstRef.current?.update(
+      sampleNumber(K.RELEASE_PRESSURE, vh),
+      sampleNumber(K.RELEASE_SHOCK, vh),
+      sampleNumber(K.RELEASE_VAPOR, vh),
+      sampleNumber(K.RELEASE_FLOW, vh),
+      sampleNumber(K.RELEASE_PRESENCE, vh),
+    );
 
     particlesRef.current?.update(
       smoothstep(K.RELEASE_FRAMING.cutPointVh - 14, K.RELEASE_FRAMING.cutPointVh + 26, vh),
@@ -340,6 +363,7 @@ export function SceneController({ flavor }: Props) {
       <group ref={rigRef}>
         <CanModel ref={canRef} flavor={flavor} />
         <ReleaseParticles ref={particlesRef} />
+        <ReleaseBurst ref={burstRef} />
       </group>
 
       <WarpField ref={warpRef} />

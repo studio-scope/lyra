@@ -29,6 +29,13 @@ export const scrollState = {
   hidden: false,
 };
 
+/**
+ * The one physical -> logical conversion in the codebase.
+ *
+ * `max` is the *measured* scrollable distance, so the page can be any length
+ * (see `SCROLL_DISTANCE_SCALE`) and this still maps it onto exactly 0..TOTAL_VH.
+ * Nothing downstream knows or needs to know how long the page is.
+ */
 function readScroll() {
   const max = document.documentElement.scrollHeight - window.innerHeight;
   const p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
