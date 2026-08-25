@@ -4,16 +4,29 @@ import * as THREE from 'three';
 /**
  * Procedural nebula volumes.
  *
- * Three planes, but **not three copies of one shape** — that was the previous
- * version's problem, and it is why the chapter read as one large radial
- * gradient. Each plane now has a distinct structural job:
+ * Three planes, but **not three copies of one shape**. Two structural jobs:
  *
- *   role 0, near  — filaments: ridged noise, sharp, sparse, highest contrast;
- *   role 1, mid   — body: domain-warped fbm carrying the mass of the form;
- *   role 2, far   — haze: very low frequency, very faint, pure depth.
+ *   body — domain-warped fbm carrying the mass of the form;
+ *   haze — very low frequency, very faint, pure depth.
  *
  * They sit at different z and drift at different rates, so the parallax is real
  * rather than implied.
+ *
+ * ## Why there is no longer a filament role
+ *
+ * The near plane used to run a third structure: hard-thresholded ridged noise
+ * at the highest gain. Isolating the layers showed it was responsible for the
+ * whole left-hand formation, and at that contrast, on the nearest plane, it read
+ * as a flat lit projection rather than as volume — a texture on a card, not
+ * smoke. It is gone, along with its `ridged()` helper.
+ *
+ * The left formation is now **the same body language as the right**, which is
+ * the look that was approved. What keeps the two from being a mirrored pair is
+ * `role`: it selects the structure *and* seeds the phase (`uRole` feeds the flow
+ * offset, the coverage offset and the edge-break offset). Giving the left plane
+ * a fractional role of 1.37 keeps it inside the body branch while sampling a
+ * completely different region of the noise field than the mid plane's 1.0. No
+ * new uniform, no new structure — the phase was always a supported parameter.
  *
  * Two things keep black dominant. A low-frequency **coverage mask** confines
  * each layer to selected regions instead of filling the viewport, and the
@@ -24,10 +37,24 @@ import * as THREE from 'three';
  * scrubbing reproduces the frame exactly.
  */
 
+/**
+ * `role` is both the structure selector and the noise phase: < 1.5 is body,
+ * >= 1.5 is haze, and the value itself offsets the flow, the coverage mask and
+ * the edge break. `w`/`h` are separate so a volume can be non-uniform.
+ *
+ * The mid and far planes are byte-for-byte what they were — the right-hand
+ * composition is approved and must not move.
+ */
 const PLANES = [
-  { z: -9, size: 26, rotation: 0.4, scale: 1.5, speed: 0.9 },
-  { z: -17, size: 46, rotation: -0.9, scale: 1.0, speed: 0.55 },
-  { z: -30, size: 78, rotation: 1.7, scale: 0.66, speed: 0.3 },
+  // LEFT. Body structure, phase 1.37, pushed off-centre and further back than
+  // the layer it replaces (-9 -> -14) so it sits behind the composition rather
+  // than in front of it. Wider than tall, and rotated the other way from the
+  // mid plane, so the two volumes are related without being a mirrored pair.
+  { x: -8.2, y: 1.4, z: -14, w: 24, h: 17, rotation: -0.32, scale: 1.18, speed: 0.72, role: 1.37 },
+  // RIGHT. Unchanged.
+  { x: 0, y: 0, z: -17, w: 46, h: 46, rotation: -0.9, scale: 1.0, speed: 0.55, role: 1 },
+  // Depth haze. Unchanged.
+  { x: 0, y: 0, z: -30, w: 78, h: 78, rotation: 1.7, scale: 0.66, speed: 0.3, role: 2 },
 ];
 
 const PARTICLES = 700;
@@ -93,20 +120,6 @@ const fragmentShader = /* glsl */ `
     return total;
   }
 
-  /** Ridged noise: creases instead of blobs. This is what makes filaments. */
-  float ridged(vec2 p, int octaves) {
-    float total = 0.0;
-    float amplitude = 0.5;
-    for (int i = 0; i < 6; i++) {
-      if (i >= octaves) break;
-      float n = 1.0 - abs(noise(p) * 2.0 - 1.0);
-      total += n * n * amplitude;
-      p *= 2.11;
-      amplitude *= 0.5;
-    }
-    return total;
-  }
-
   void main() {
     vec2 uv = (vUv - 0.5) * 2.0;
 
@@ -132,15 +145,7 @@ const fragmentShader = /* glsl */ `
 
     /* ---- structure, by role ---------------------------------------- */
     float n;
-    if (uRole < 0.5) {
-      // Filaments. Domain-warped ridges, thresholded hard so only the
-      // brightest creases survive as thin bright strands.
-      vec2 w = p * 1.35;
-      w += vec2(fbm(p * 0.7, 3), fbm(p * 0.7 + 5.2, 3)) * 1.15;
-      n = ridged(w, 4);
-      n = smoothstep(0.34, 0.74, n);
-      n = pow(n, mix(1.0, 0.78, isNova));
-    } else if (uRole < 1.5) {
+    if (uRole < 1.5) {
       // Body. The mass of the cloud, domain-warped so it is never symmetric.
       vec2 w = p + fbm(p * 0.6, 3) * 0.95;
       n = fbm(w, 4);
@@ -184,7 +189,7 @@ const fragmentShader = /* glsl */ `
 
     // Per-role, per-flavour intensity. Filaments carry the contrast, haze is
     // barely there. NOVA is the brightest of the three, VOID the darkest.
-    float roleGain = uRole < 0.5 ? 0.155 : (uRole < 1.5 ? 0.130 : 0.068);
+    float roleGain = uRole < 1.5 ? 0.130 : 0.068;
     float flavourGain = mix(1.0, 1.12, isNova) * mix(1.0, 0.80, isVoid);
 
     float alpha = density * uPresence * roleGain * flavourGain * uGain;
@@ -247,7 +252,7 @@ export const NebulaVolume = forwardRef<NebulaHandle>(function NebulaVolume(_, re
 
   const built = useMemo(() => {
     const geometry = new THREE.PlaneGeometry(1, 1);
-    const materials = PLANES.map((plane, index) =>
+    const materials = PLANES.map((plane) =>
       new THREE.ShaderMaterial({
         vertexShader,
         fragmentShader,
@@ -259,7 +264,7 @@ export const NebulaVolume = forwardRef<NebulaHandle>(function NebulaVolume(_, re
           uDrift: { value: 0 },
           uScale: { value: plane.scale },
           uShape: { value: 0 },
-          uRole: { value: index },
+          uRole: { value: plane.role },
           uGain: { value: NEBULA_GAIN },
         },
         transparent: true,
@@ -347,9 +352,9 @@ export const NebulaVolume = forwardRef<NebulaHandle>(function NebulaVolume(_, re
           key={i}
           geometry={built.geometry}
           material={built.materials[i]}
-          position={[0, 0, plane.z]}
+          position={[plane.x, plane.y, plane.z]}
           rotation={[0, 0, plane.rotation]}
-          scale={[plane.size, plane.size, 1]}
+          scale={[plane.w, plane.h, 1]}
           renderOrder={-10 + i}
           frustumCulled={false}
         />
