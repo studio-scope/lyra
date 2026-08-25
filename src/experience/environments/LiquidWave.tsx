@@ -2,10 +2,10 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'rea
 import * as THREE from 'three';
 
 /**
- * PLACEHOLDER ENVIRONMENT — Phase 1.
+ * The CTA liquid horizon.
  *
  * A settled violet liquid surface suggested with gradients and soft shader
- * distortion, standing in for the Phase 2 CTA plate.
+ * distortion. Procedural and final — there is no plate behind this.
  *
  * This is a compositional plate, not a physical object, so it is pinned to the
  * camera and refitted to the frustum every frame. `SURFACE_HEIGHT` is then a

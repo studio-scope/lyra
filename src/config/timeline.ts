@@ -58,7 +58,7 @@ export const CHAPTERS: Chapter[] = [
   { id: 'asteroid', index: '02', label: 'ASTEROID RUN', start: 180, end: 420, flavor: 'nova' },
   { id: 'nebulas', index: '03', label: 'FLAVOR NEBULAS', start: 420, end: 820, flavor: 'nova' },
   { id: 'station', index: '04', label: 'STATION FLYBY', start: 820, end: 1080, flavor: 'void' },
-  { id: 'release', index: '05', label: 'RELEASE', start: 1080, end: 1320, flavor: 'void' },
+  { id: 'release', index: '05', label: 'OPEN & POUR', start: 1080, end: 1320, flavor: 'void' },
   { id: 'cta', index: '06', label: 'CHOOSE YOUR SIGNAL', start: 1320, end: 1450, flavor: 'void' },
 ];
 

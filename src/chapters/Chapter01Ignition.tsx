@@ -69,6 +69,7 @@ export function Chapter01Ignition() {
         className={styles.blockBottomLeft}
         style={{ opacity: headline.opacity, y: headline.y }}
       >
+        <span className={styles.flavorCode}>{COPY.ignition.flavor}</span>
         <h1 className={styles.headline}>{COPY.ignition.headline}</h1>
       </motion.div>
     </ChapterSection>

@@ -15,37 +15,56 @@ imagery, no stock assets, no downloaded 3D models and no video.
 
 ## Current Project Status
 
-**Status date: 25 August 2026 — Phase 4 complete. Chapter 05 is native,
-polished and approved.**
+**Status date: 25 August 2026 — Phase 5 complete. Structure, content and
+narrative are finished across all six chapters.**
 
-The site runs end to end. There is no placeholder left in the scroll and the
-page ships **no video at all**.
+The site runs end to end as a finished six-chapter product story. There is no
+development placeholder, temporary label or filler copy left anywhere in the
+scroll, and the page ships **no video at all**.
 
-- six scroll chapters, full narrative traversal working;
+| # | Chapter | Narrative job |
+| --- | --- | --- |
+| 01 | Ignition | Establishes LYRA, the NOVA / 01 signal and the launch premise. |
+| 02 | Asteroid Run | Acceleration — travel from ignition toward the flavor system. |
+| 03 | Flavor Nebulas | The three variants, each with its name, number and taste. |
+| 04 | Station Flyby | **The product-information chapter.** Caffeine, sugar, energy, volume. |
+| 05 | Open & Pour | The can is opened; pressure, vapour and liquid are released. |
+| 06 | CTA | The close: wordmark, choice, flavors, action, tagline. |
+
+Also true of the build:
+
 - one continuous procedural 3D can, mounted once and alive for the whole page;
-- **Ignition** — Lyra constellation draws in, Vega ignites, the can launches;
-- **Asteroid Run** — procedural asteroid field, curved flight path;
-- **Flavor Nebulas** — NOVA, COMET and VOID moments with warp transitions;
-- **Station Flyby** — procedural station ring with a staggered HUD readout;
-- **Release** — the lid mechanism opens a real aperture and the pressure,
-  vapour, liquid and droplets are rendered natively in the same scene;
-- **final CTA** — centred wordmark lockup;
 - a continuous flight trail that persists across every chapter;
 - coded label textures for NOVA, COMET and VOID;
 - scroll pacing calibrated with `SCROLL_DISTANCE_SCALE = 1.75`;
 - a two-corner global HUD — brand label and progress meter, nothing else;
-- debug tooling (`D` readout, `V` release annotation, `?capture=1`).
+- debug tooling (`D` readout, `?capture=1` frame capture).
 
-Chapters 01–04 remain the **approved procedural implementation** and were not
-touched by Phase 3 or Phase 4.
+### Phase 5 — structural completion
 
-Phase 4 was one scoped visual-polish pass over three things only: the global
-corner HUD, the Station – Release handoff, and the can-opening snap and release.
-The HUD and the handoff are externally approved. The snap was then strengthened
-a second time — longer dead hold, a 12 px / 0.75° can kick, a harder vapour
-attack and three visibly launched lead droplets — and **that revision has not
-yet had a live human scroll-through.** See *Remaining Work*, item 1.
+One pass across all six chapters, content and structure only. **No geometry,
+material, shader, camera, easing, lighting or scroll value was touched.**
+What changed:
 
+- **Chapter 01** now names the variant that is launching (`NOVA / 01`), and
+  the opening line is a real instruction (`Scroll to ignite.`) rather than
+  `Signal acquired.` — invented telemetry with no product meaning.
+- **Chapter 02** support copy states its narrative job instead of an abstract
+  aphorism.
+- **Chapter 03** flavour descriptions are now actual taste copy. They used to
+  be mood lines (`Bright pressure. Cold finish.`) that told a buyer nothing.
+- **Chapter 04** is now a genuine spec panel. `SIGNAL / STABLE` and
+  `ORIGIN / LYRA` were invented sci-fi telemetry and are gone; `SUGAR / ZERO`
+  and `ENERGY / 10 KCAL` — facts a buyer actually wants — are in.
+- **Chapter 05** shed the last of the video era: the `V` annotation overlay
+  (reference-frame tag, cut-point diagnostics, scrub progress percentage) is
+  deleted along with its stylesheet and its keyboard toggle. The chapter is
+  labelled `05 / OPEN & POUR` to match the six-chapter structure.
+- **Chapter 06** already matched the required hierarchy and was left alone.
+
+**Visual and model polish is intentionally deferred.** Can geometry, shoulder
+shading, lid hardware, particle micro-polish and frame-by-frame snap tuning
+were all explicitly out of scope for this pass and remain as they were.
 ### The external-video approach was rejected
 
 Phase 2 shipped Chapter 05 as a Higgsfield-generated liquid plate composited
@@ -222,12 +241,14 @@ the middle stays usable.
 
 ### Development controls
 
-Both are **off by default** so the recording state is clean.
+**Off by default** so the recording state is clean.
 
 | Key | Toggles |
 | --- | --- |
 | `D` | Debug readout: scroll progress, chapter, flavor, FPS, can and camera position, FOV, warp |
-| `V` | Chapter 05 release annotation: framing box, reference frame, vh ranges, progress |
+
+The `V` release annotation was removed in Phase 5. It documented the plate/cut-point
+architecture that no longer exists, so it could only mislead.
 
 ### Capturing reference frames
 
@@ -269,7 +290,7 @@ exists in a production build.
 | CTA liquid placeholder | `src/experience/environments/LiquidWave.tsx` |
 | Star layers | `src/experience/environments/StarLayers.tsx` |
 | Lyra constellation | `src/experience/environments/LyraConstellation.tsx` |
-| Chapter 05 copy + `V` overlay | `src/chapters/Chapter05Release.tsx` |
+| Chapter 05 copy | `src/chapters/Chapter05Release.tsx` |
 | HUD | `src/components/HudOverlay.tsx` |
 | Wordmark component | `src/components/LyraWordmark.tsx` |
 | Debug panel | `src/components/DebugPanel.tsx` |
@@ -368,6 +389,92 @@ quantisation.
 > Do not "fix" pacing by increasing damping, stretching individual tracks or
 > changing `TOTAL_VH`. Damping controls perceived lag, not scroll sensitivity.
 > `SCROLL_DISTANCE_SCALE` is the only correct lever, and it is calibrated.
+
+---
+
+## Visible Copy
+
+Every string on screen, in scroll order. All of it lives in
+`src/config/copy.ts` — nothing is invented in a component.
+
+**Global HUD** (locked, two corners only)
+
+| Corner | Content |
+| --- | --- |
+| Top-left | `LYRA ENERGY` |
+| Top-right | *empty* |
+| Bottom-left | *empty* |
+| Bottom-right | progress rule + numeric percentage. **No `SCROLL` label.** |
+
+**01 — Ignition**
+
+- `01 / IGNITION`
+- `Scroll to ignite.` *(only while nothing has happened yet)*
+- LYRA wordmark (impact)
+- `NOVA / 01`
+- `ENERGY FROM ANOTHER SYSTEM.`
+
+**02 — Asteroid Run**
+
+- `02 / ASTEROID RUN`
+- `NO BRAKES. NO GRAVITY.`
+- `Full speed from ignition to the flavor system.`
+
+**03 — Flavor Nebulas**
+
+- `03 / FLAVOR NEBULAS`
+
+| Code | Name | Taste |
+| --- | --- | --- |
+| `NOVA / 01` | `VIOLET IGNITION` | `Sharp citrus ignition with a dark berry finish.` |
+| `COMET / 02` | `COLD SPEED` | `Cold blue raspberry. Clean, fast and electric.` |
+| `VOID / 03` | `DARK MATTER` | `Black cherry and grape. Deep flavor, no soft landing.` |
+
+A `01 / 02 / 03` progress index sits bottom-right; the active moment comes
+forward and the other two stay legible but recessive.
+
+**04 — Station Flyby** — the product-information chapter
+
+- `04 / STATION FLYBY`
+
+| | |
+| --- | --- |
+| `PRODUCT SPEC` | *(heading, with a one-shot scan rule)* |
+| `CAFFEINE` | `160 MG` |
+| `SUGAR` | `ZERO` |
+| `ENERGY` | `10 KCAL` |
+| `VOLUME` | `355 ML` |
+
+Four facts, no invented telemetry. Revealed as a staggered group in the
+existing HUD language — thin rules and mono type, no glass cards.
+
+**05 — Open & Pour**
+
+- `05 / OPEN & POUR`
+- `RELEASE THE SIGNAL.`
+
+Both clear the frame before the score gives way at vh 1233, so nothing the can
+throws can cross the copy. From there the chapter is pure 3D.
+
+**06 — CTA**
+
+- LYRA wordmark
+- `CHOOSE YOUR SIGNAL.`
+- `NOVA / COMET / VOID`
+- `FIND LYRA` *(button — non-functional by design; this is a recording prototype)*
+- `ENERGY FROM ANOTHER SYSTEM`
+
+**Printed on the can:** `LYRA`, the flavour code, `COSMIC ENERGY · 355 ML`.
+
+### Content rules
+
+Every visible string must do one of four jobs: identify the brand, explain the
+current product moment, carry product information, or drive the final action.
+If it does none of those it does not go on screen.
+
+No `SYSTEM ONLINE`, `SIGNAL ACQUIRED`, `SEQUENCE ACTIVE`, `PHASE PENDING` or
+similar. No invented measurements. No long paragraphs. Do not populate the two
+empty HUD corners for symmetry — the whitespace is the design.
 
 ---
 
@@ -655,46 +762,33 @@ buffer and returns a black canvas — take best-of-3 by non-black pixel count.
 
 ## Remaining Work
 
-For Andrej’s agent. This is the genuine list — everything else is done.
+Structure, content and narrative are **complete**. Everything below is
+aesthetic polish, and all of it is optional — the site is recordable as it
+stands.
 
-The global HUD cleanup, the Station – Release handoff and the Phase-4 snap
-revision are all **done, externally verified on a live scroll-through (25
-August 2026), and approved.** Forward/reverse determinism re-checked at 0
-mismatches across 9 beats spanning the sealed hold through settle.
-
-**Start here, in this order:**
-
-1. ~~Confirm the snap on a real machine.~~ **Done.** Verified live at
-   1440 × 900: sealed hold with no leak through vh 1236, a sharp break at
-   vh 1244 (flap 70.7°, cut-edge flash, vapour), a real recoil kick (rig
-   rises from resting −0.12 to −0.0849, overshoots to −0.130, settles back
-   to −0.12), droplets clearly launched from the aperture, no rubbery
-   afterswing. Forward/reverse: 0/9 mismatches.
-2. **Replace remaining generic chapter paragraphs and placeholder copy** in
-   `src/config/copy.ts`. The chapter support lines are the weakest writing in
-   the project.
-3. **Optional** nebula and station detail polish — only if it materially
-   improves the advertisement. `NebulaVolume` is uniform-driven, so swapping in
-   plates is a fragment-shader change, not a chapter rewrite. Do not spend
-   Higgsfield credits on it.
-4. ~~Record the final 1440 × 900 advertisement traversal.~~ **Done** —
-   `docs/qa/final-ad/lyra-full-traversal-1440x900.mp4` (49.4s, both overlays
-   off, real wheel input, gitignored — regenerate with the same method if a
-   fresh cut is needed).
-5. **Optional:** `docs/qa/final/6-ch05-snap.png` and `7-ch05-release.png`
-   predate Phase 4 and still show the old snap. `docs/qa/release/` is the
-   authoritative record now; re-shoot those two frames if the chapter-by-chapter
-   overview matters.
-6. **Optional, materials/lighting only:** the shoulder knuckle (where
-   `BODY_PROFILE` turns from straight sidewall into the shoulder taper, around
-   world Y 1.0–1.1) reads as a flat, dark band under the current strip-light
-   rig, most noticeable directly beneath the open aperture. See *Investigated:
-   "flap visible through the shoulder"* above — this is confirmed unrelated to
-   the flap and present in every chapter, not something Phase 4 introduced. A
-   fix belongs to a lighting/materials pass (candidates: re-check vertex-normal
+1. **The can shoulder knuckle.** Where `BODY_PROFILE` turns from straight
+   sidewall into the shoulder taper (around world Y 1.0–1.1) it reads as a
+   flat, dark band under the current strip-light rig, most noticeable directly
+   beneath the open aperture. Confirmed unrelated to the flap and present in
+   every chapter — see *Investigated: "flap visible through the shoulder"*.
+   A fix belongs to a lighting/materials pass: re-check vertex-normal
    smoothing across the knuckle ring, or add fill from the strip-light rig at
-   that angle), never to the flap/lid code.
-
+   that angle. **Never** to the flap/lid code.
+2. **Chapter 05 snap and liquid, final taste pass.** Structurally correct,
+   deterministic and reversible, and verified live. What is left is judgment:
+   whether the break reads sharply enough and whether the liquid holds up as a
+   hero moment at full size. Levers: `CAN_RECOIL` + `RECOIL_*`, `FLAP_BREAK`,
+   the `impact` decay in `easing.ts`, `RELEASE_VAPOR`, and the droplet block in
+   `ReleaseBurst.tsx`. Change one at a time and re-scroll.
+3. **Optional nebula and station detail.** `NebulaVolume` is uniform-driven,
+   so swapping in plates is a fragment-shader change, not a chapter rewrite.
+   Do not spend Higgsfield credits on it.
+4. **Optional:** `docs/qa/final/6-ch05-snap.png` and `7-ch05-release.png`
+   predate Phase 4 and still show the old snap. `docs/qa/release/` and
+   `docs/qa/structure/` are the authoritative records now.
+5. **Re-record the advertisement** if any of the above changes. The current cut
+   is `docs/qa/final-ad/lyra-full-traversal-1440x900.mp4` (49.4 s, both
+   overlays off, real wheel input, gitignored).
 **Things that are locked and must not be touched while doing any of the above:**
 `TOTAL_VH`, `SCROLL_DISTANCE_SCALE`, the chapter ranges, the camera keyframes
 outside 1104 – 1150, the wordmark, the can geometry and materials, the flavour
@@ -743,6 +837,7 @@ rebuilt lid or the scroll calibration — see *Locked Visual Decisions*.
 | `docs/qa/polish/x1..x4` | The Station – Release handoff: the ring still visible behind the can at 1126 and 1150. |
 | `docs/qa/polish/release-1..3` | The snap **before** the Phase 4 micro-polish, kept as the before side of the comparison. |
 | `docs/qa/final/` | The whole site, chapter by chapter. Its two Chapter 05 frames predate Phase 4. |
+| `docs/qa/structure/` | **Phase 5 — one frame per chapter, in order.** The finished six-chapter story: `01-ignition` through `06-cta`. Start here for structure and copy. |
 | `docs/qa/scroll-distance/` | The corrected scroll traversal — 16 logical checkpoints across the whole timeline. |
 | `docs/qa/after/` | The can/packaging refinement, including `neutral-*` renders proving the three flavors are distinct under plain white light. |
 | `docs/qa/before/` | The state before that refinement. |
@@ -756,10 +851,14 @@ throwaway.
 
 ## Handoff
 
-**25 August 2026.** The repository is in a safe, documented, pushed state.
-Chapters 01–06 all work, Chapter 05 is native, polished and externally approved,
-the global HUD is down to two corners, scroll pacing is calibrated and approved,
-and `tsc -b` and `npm run build` both pass clean.
+**25 August 2026.** The repository is in a safe, documented, pushed state.
+Chapters 01–06 all work and read as a finished product story end to end.
+Chapter 05 is native, polished and externally approved, the global HUD is down
+to two corners, scroll pacing is calibrated and approved, all visible copy is
+final, and `tsc -b` and `npm run build` both pass clean.
+
+What remains is **aesthetic polish only**, listed in *Remaining Work*, and all
+of it is optional — the site is recordable as it stands.
 
 Phase 4 changed ten source files and nothing else: `src/App.tsx`,
 `src/components/HudOverlay.tsx`, `src/components/HudOverlay.module.css`,

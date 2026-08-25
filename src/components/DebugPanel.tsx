@@ -6,8 +6,7 @@ import { chapterAt, flavorAt, TOTAL_VH } from '../config/timeline';
 import { RELEASE_FRAMING } from '../config/choreography';
 
 /**
- * Development readout. Hidden by default — `D` toggles it, `V` toggles the
- * Chapter 05 release overlay.
+ * Development readout. Hidden by default — `D` toggles it.
  *
  * Polls at 8 Hz from plain mutable objects; it never subscribes to the frame
  * loop, so having it open does not change what it is measuring.
@@ -32,7 +31,7 @@ export function DebugPanel() {
     <div className={styles.panel}>
       <div className={styles.header}>
         <span>LYRA · DEV</span>
-        <span className={styles.hint}>D PANEL · V RELEASE</span>
+        <span className={styles.hint}>D PANEL</span>
       </div>
 
       <Row label="PROGRESS" value={`${fmt(scrollState.progress * 100, 1)}%`} />
@@ -53,7 +52,6 @@ export function DebugPanel() {
       <Row label="WARP" value={fmt(sceneReadout.warp)} />
 
       <div className={styles.section}>OPEN &amp; POUR</div>
-      <Row label="SOURCE" value="LIVE SCENE" />
       <Row
         label="RELEASE"
         value={`${RELEASE_FRAMING.cutPointVh} → ${RELEASE_FRAMING.releaseEndVh} VH`}

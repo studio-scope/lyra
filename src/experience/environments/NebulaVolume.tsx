@@ -2,11 +2,11 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'rea
 import * as THREE from 'three';
 
 /**
- * PLACEHOLDER ENVIRONMENT — Phase 1.
+ * Procedural nebula volumes.
  *
- * Procedural colour volumes standing in for the nebula plates that will be
- * produced in Phase 2 (see /public/assets/nebula-* and the README). Three
- * soft shader planes at different depths plus a sparse particle volume.
+ * Three soft shader planes at different depths plus a sparse particle volume.
+ * Deliberately faint: these are the one environment still open to an optional
+ * art pass (see /public/assets/nebula-* and the README).
  *
  * Everything is driven by uniforms, so replacing this with textured plates
  * later is a swap of the fragment shader, not a rewrite of the chapter.

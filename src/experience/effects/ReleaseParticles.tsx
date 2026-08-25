@@ -2,11 +2,11 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'rea
 import * as THREE from 'three';
 
 /**
- * The suspended particle cue at the Chapter 05 cut point.
+ * The suspended particle cue over the lid in Chapter 05.
  *
  * Not a spray and not a simulation — a small volume of particles that lifts
- * off the lid and then hangs, marking the exact frame the Phase 2 Open & Pour
- * plate takes over.
+ * off the lid and then hangs, seeding the frame just before `ReleaseBurst`
+ * takes the release over.
  */
 
 const COUNT = 150;

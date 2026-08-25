@@ -3,13 +3,12 @@ import { useEffect, useState } from 'react';
 /**
  * Development controls.
  *
- * Everything is off by default so the recording state is clean. Press `D` for
- * the readout panel, `V` for the Open & Pour release annotation.
+ * Off by default so the recording state is clean. Press `D` for the readout
+ * panel.
  */
 
 export const debugState = {
   panel: false,
-  videoBounds: false,
 };
 
 /** Live values written from `useFrame`; read by the panel on an interval. */
@@ -52,9 +51,6 @@ function installDebugKeys() {
     const key = e.key.toLowerCase();
     if (key === 'd') {
       debugState.panel = !debugState.panel;
-      emit();
-    } else if (key === 'v') {
-      debugState.videoBounds = !debugState.videoBounds;
       emit();
     }
   });
