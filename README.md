@@ -569,6 +569,49 @@ Nothing is randomised per render, so the burst is identical on every reload.
 truth for the release camera: position `[0, 2.58, 3.42]`, target `[0, 1.05, 0]`,
 FOV 30°, can at `[0, -0.12, 0]`, rotation Y 0.6204 rad, flavor VOID / 03.
 
+### Investigated: reported "flap visible through the shoulder"
+
+A report described a dark, oval-ish shape hanging over the can's front
+shoulder once Chapter 05 opens, read as the scored panel showing through the
+exterior wall. This was investigated end to end in `CanModel.tsx` and
+`canProfile.ts` and **the flap/lid geometry and hinge are correct.** No source
+file was changed as a result — evidence below, stills in `docs/qa/bugcheck/`.
+
+What was checked:
+
+- **Hinge and rotation direction.** The flap hinges at `APERTURE_HINGE_Z`
+  (the aperture edge nearest the rivet) and `panelRef.rotation.x` is positive.
+  Working through the actual rotation matrix: a positive angle drops the far
+  edge of the flap *down* (world Y falls) and pulls it *back toward the hinge*
+  (world Z falls) — i.e. down and away from the shoulder, never toward it.
+- **Radial containment, measured at runtime, not assumed.** The flap's world-
+  space bounding box was read directly off `panel.matrixWorld` at three
+  states: sealed, mid-break and the `impact` easing's transient overshoot
+  (~72° at vh 1243.7, past the 65.9° resting angle). Maximum radial reach in
+  all three: **≤0.134 world units**, against a can-body radius of **~0.55** at
+  that height — better than 4× clearance. The flap cannot reach the exterior
+  wall at any point in its travel, overshoot included.
+- **Direct isolation test.** With the running scene open in a browser, the
+  panel mesh and the interior cavity mesh were each set `.visible = false` in
+  turn and the frame re-rendered. **The shoulder shape was pixel-identical
+  with the flap present, with the flap hidden, and with the cavity hidden.**
+  `docs/qa/bugcheck/proof-panel-not-the-cause.png` is that comparison,
+  cropped to the exact region and camera angle the report described.
+- **The shape predates the opening.** It is visible, unchanged, at vh 1188
+  (fully sealed, tab not yet lifted — `a-sealed-1188.png`) and at vh 1080 in
+  Chapter 04, Station Flyby, where the flap has never moved. It is not caused
+  by anything that happens in Chapter 05.
+
+What it actually is: a shading characteristic of the exterior `body` lathe
+mesh (`BODY_PROFILE` in `canProfile.ts`) under the studio strip-light rig —
+most visible right at the shoulder knuckle, where the profile turns sharply
+enough that the averaged vertex normals likely produce a flatter, less
+specular band than the straight sidewall around it. It reads as "dark" because
+it sits directly beneath the correctly-dark aperture interior, and the two
+visually merge at a glance. Fixing the shading is a **materials/lighting**
+change, which is explicitly out of scope here (and the can's exterior geometry
+is a *Locked Visual Decision*) — see *Remaining Work* for the follow-up.
+
 ### No external asset is used in Chapter 05
 
 Stated plainly, because this was reopened once already:
@@ -644,6 +687,15 @@ documented and verified, but see item 1.
    predate Phase 4 and still show the old snap. `docs/qa/release/` is the
    authoritative record now; re-shoot those two frames if the chapter-by-chapter
    overview matters.
+6. **Optional, materials/lighting only:** the shoulder knuckle (where
+   `BODY_PROFILE` turns from straight sidewall into the shoulder taper, around
+   world Y 1.0–1.1) reads as a flat, dark band under the current strip-light
+   rig, most noticeable directly beneath the open aperture. See *Investigated:
+   "flap visible through the shoulder"* above — this is confirmed unrelated to
+   the flap and present in every chapter, not something Phase 4 introduced. A
+   fix belongs to a lighting/materials pass (candidates: re-check vertex-normal
+   smoothing across the knuckle ring, or add fill from the strip-light rig at
+   that angle), never to the flap/lid code.
 
 **Things that are locked and must not be touched while doing any of the above:**
 `TOTAL_VH`, `SCROLL_DISTANCE_SCALE`, the chapter ranges, the camera keyframes
@@ -663,6 +715,10 @@ rebuilt lid or the scroll calibration — see *Locked Visual Decisions*.
 - **The station is procedural** — geometry only, no panel texture yet.
 - **At the release camera's shallow angle you cannot see far into the can.** The
   opened flap is present and correct but reads subtly at that elevation.
+- **The shoulder shows a dark, flat-looking band right beneath the aperture**,
+  in every chapter, sealed or open. Confirmed to be an exterior-body shading
+  characteristic, not the flap — see *Investigated: "flap visible through the
+  shoulder"* under *Chapter 05 — Release*, and item 6 of *Remaining Work*.
 - **Chapter 05 is composed for 1440 × 900.** It is live geometry so it does not
   crop, but the release is framed for that viewport.
 - **Camera damping (`lambda = 22`) means a checkpoint sampled immediately after
@@ -692,6 +748,7 @@ rebuilt lid or the scroll calibration — see *Locked Visual Decisions*.
 | `docs/qa/scroll-distance/` | The corrected scroll traversal — 16 logical checkpoints across the whole timeline. |
 | `docs/qa/after/` | The can/packaging refinement, including `neutral-*` renders proving the three flavors are distinct under plain white light. |
 | `docs/qa/before/` | The state before that refinement. |
+| `docs/qa/bugcheck/` | The shoulder-shading investigation. `proof-panel-not-the-cause.png` is the decisive frame: flap visible vs. flap hidden, same camera, pixel-identical shoulder. `a-sealed-1188` through `g-reverse-sealed-1188` cover sealed → tension → break → max rotation → peak vapour → settled → reverse-scrubbed sealed. |
 
 Screen recordings are gitignored (`*.mp4`, `*.webm`) and live only on the machine
 that made them; the checkpoint stills are committed. `docs/qa/wip/` is gitignored
@@ -717,6 +774,14 @@ Station – Release handoff changed.
 
 **Open:** a live human scroll-through of the strengthened snap. Everything else
 in Chapter 05 is finished, verified and documented above.
+
+A report of the scored panel showing through the can's front shoulder was
+investigated in this same pass. **The flap/lid geometry is correct** — no
+source file changed. The visible shape is a pre-existing exterior-body shading
+characteristic, confirmed present sealed and in Chapter 04, and confirmed by
+direct isolation to be unaffected by the flap or the interior cavity. Full
+writeup: *Chapter 05 — Investigated: "flap visible through the shoulder"*.
+Follow-up, if wanted, is materials/lighting work — item 6 of *Remaining Work*.
 
 Higgsfield holds **80 credits**. Do not use them casually: the external-video
 approach it was bought for has been rejected, and reopening that decision
