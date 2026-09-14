@@ -64,6 +64,9 @@ export function Chapter06Cta() {
           {COPY.cta.support}
         </motion.p>
       </div>
+      <motion.p className={local.credit} style={{ opacity: support.opacity }}>
+        Built by <a href="https://builtbyscop.co" target="_blank" rel="noopener noreferrer">scope</a>
+      </motion.p>
     </ChapterSection>
   );
 }

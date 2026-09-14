@@ -21,7 +21,7 @@
 
 .ctaWrap {
   margin-top: 3.25rem;
-  /* The only interactive element on the page. */
+  /* Restore interaction inside the passive chapter layer. */
   pointer-events: auto;
 }
 
@@ -63,4 +63,28 @@
   letter-spacing: var(--track-hud);
   text-transform: uppercase;
   color: var(--muted-white);
+}
+
+.credit {
+  position: absolute;
+  bottom: var(--stage-inset-y);
+  left: 50%;
+  translate: -50% 0;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--muted-white);
+  white-space: nowrap;
+}
+
+.credit a {
+  color: var(--nova-luminous);
+  pointer-events: auto;
+  text-decoration: none;
+}
+
+.credit a:hover,
+.credit a:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
