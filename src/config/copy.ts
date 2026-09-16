@@ -8,39 +8,36 @@ export const COPY = {
   },
 
   ignition: {
-    chapter: '01 / IGNITION',
     headline: 'ENERGY FROM ANOTHER SYSTEM.',
     /** The can that launches is NOVA; naming it here starts the flavour thread. */
-    flavor: 'NOVA / 01',
+    flavor: 'NOVA',
     support: 'Scroll to ignite.',
   },
 
   asteroid: {
-    chapter: '02 / ASTEROID RUN',
     headline: 'NO BRAKES. NO GRAVITY.',
     support: 'Full speed from ignition to the flavor system.',
   },
 
   nebulas: {
-    chapter: '03 / FLAVOR NEBULAS',
     /**
-     * `code` carries the flavour name and its sequence number; `headline` is the
+     * `code` carries the flavour name; `headline` is the
      * variant's name in the brand voice; `support` is what it actually tastes
      * like. Two short lines each, maximum — edit these freely.
      */
     moments: [
       {
-        code: 'NOVA / 01',
+        code: 'NOVA',
         headline: 'VIOLET IGNITION',
         support: 'Sharp citrus ignition with a dark berry finish.',
       },
       {
-        code: 'COMET / 02',
+        code: 'COMET',
         headline: 'COLD SPEED',
         support: 'Cold blue raspberry. Clean, fast and electric.',
       },
       {
-        code: 'VOID / 03',
+        code: 'VOID',
         headline: 'DARK MATTER',
         support: 'Black cherry and grape. Deep flavor, no soft landing.',
       },
@@ -48,7 +45,6 @@ export const COPY = {
   },
 
   station: {
-    chapter: '04 / STATION FLYBY',
     /**
      * The product-information moment. Four facts a buyer actually wants, and
      * nothing invented: no signal strength, no origin coordinates, no telemetry.
@@ -63,7 +59,6 @@ export const COPY = {
   },
 
   release: {
-    chapter: '05 / OPEN & POUR',
     headline: 'RELEASE THE SIGNAL.',
   },
 

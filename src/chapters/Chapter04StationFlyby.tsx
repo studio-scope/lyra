@@ -1,5 +1,4 @@
 import { motion } from 'motion/react';
-import styles from './Chapters.module.css';
 import local from './Chapter04StationFlyby.module.css';
 import { ChapterSection, useBlockAt } from './ChapterSection';
 import { COPY } from '../config/copy';
@@ -23,7 +22,6 @@ const ROW_WINDOWS: [number, number, number, number][] = [
 ];
 
 export function Chapter04StationFlyby() {
-  const label = useBlockAt([842, 860, 1036, 1056], 16);
   const rows = [
     useBlockAt(ROW_WINDOWS[0], 12),
     useBlockAt(ROW_WINDOWS[1], 12),
@@ -38,13 +36,6 @@ export function Chapter04StationFlyby() {
 
   return (
     <ChapterSection start={start} end={end}>
-      <motion.div
-        className={styles.blockTopLeft}
-        style={{ opacity: label.opacity, y: label.y }}
-      >
-        <span className={styles.chapterLabel}>{COPY.station.chapter}</span>
-      </motion.div>
-
       <div className={local.readout}>
         <motion.div
           className={local.heading}

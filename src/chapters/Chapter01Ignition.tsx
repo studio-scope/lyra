@@ -36,7 +36,6 @@ export function Chapter01Ignition() {
     (v: number) => `blur(${v.toFixed(2)}px)`,
   );
 
-  const label = useStaggeredBlock(start, end, 0, [0.03, 0.11, 0.92, 1]);
   // Reads immediately after the wordmark lands, and holds to the boundary.
   const headline = useStaggeredBlock(start, end, 0, [0.855, 0.915, 0.955, 1]);
 
@@ -47,13 +46,6 @@ export function Chapter01Ignition() {
 
   return (
     <ChapterSection start={start} end={end}>
-      <motion.div
-        className={styles.blockTopLeft}
-        style={{ opacity: label.opacity, y: label.y }}
-      >
-        <span className={styles.chapterLabel}>{COPY.ignition.chapter}</span>
-      </motion.div>
-
       <motion.div
         className={local.mark}
         style={{ opacity: markOpacity, scale: markScale, y: markY, filter: markFilter }}

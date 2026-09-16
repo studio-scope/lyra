@@ -18,18 +18,10 @@ const { start, end } = CHAPTERS[4];
 export function Chapter05Release() {
   // Both blocks are clear of the frame before the score gives way at 1233, so
   // nothing the can throws can ever cross the headline.
-  const label = useBlockAt([1096, 1114, 1204, 1226], 16);
   const headline = useBlockAt([1110, 1132, 1200, 1224], 24);
 
   return (
     <ChapterSection start={start} end={end}>
-      <motion.div
-        className={styles.blockTopLeft}
-        style={{ opacity: label.opacity, y: label.y }}
-      >
-        <span className={styles.chapterLabel}>{COPY.release.chapter}</span>
-      </motion.div>
-
       <motion.div
         className={styles.blockTopCenter}
         style={{ opacity: headline.opacity, y: headline.y }}

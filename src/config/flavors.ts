@@ -15,8 +15,6 @@ export interface FlavorConfig {
   id: FlavorId;
   /** Display name used on the label and in the HUD. */
   name: string;
-  /** Two-digit index printed as `NAME / 01`. */
-  index: string;
   code: string;
   /** Palette driving environment light, trail and nebula volume. */
   palette: Palette;
@@ -32,8 +30,7 @@ export const FLAVORS: Record<FlavorId, FlavorConfig> = {
   nova: {
     id: 'nova',
     name: 'NOVA',
-    index: '01',
-    code: 'NOVA / 01',
+    code: 'NOVA',
     palette: NOVA,
     keyLight: NOVA.ultraviolet,
     rimLight: NOVA.cobalt,
@@ -42,8 +39,7 @@ export const FLAVORS: Record<FlavorId, FlavorConfig> = {
   comet: {
     id: 'comet',
     name: 'COMET',
-    index: '02',
-    code: 'COMET / 02',
+    code: 'COMET',
     palette: COMET,
     keyLight: COMET.ultraviolet,
     rimLight: COMET.cobalt,
@@ -52,8 +48,7 @@ export const FLAVORS: Record<FlavorId, FlavorConfig> = {
   void: {
     id: 'void',
     name: 'VOID',
-    index: '03',
-    code: 'VOID / 03',
+    code: 'VOID',
     palette: VOID,
     keyLight: VOID.ultraviolet,
     rimLight: VOID.cobalt,

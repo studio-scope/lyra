@@ -66,18 +66,9 @@ function Moment({ index, window: w, side }: MomentProps) {
 }
 
 export function Chapter03FlavorNebulas() {
-  // The chapter label rides the whole chapter; the moments swap beneath it.
-  const label = useBlockAt([432, 450, 800, 818], 16);
 
   return (
     <ChapterSection start={start} end={end}>
-      <motion.div
-        className={styles.blockTopLeft}
-        style={{ opacity: label.opacity, y: label.y }}
-      >
-        <span className={styles.chapterLabel}>{COPY.nebulas.chapter}</span>
-      </motion.div>
-
       {/* Windows end before each warp so the swap itself is pure 3D. */}
       <Moment index={0} window={[452, 472, 536, 552]} side="left" />
       <Moment index={1} window={[588, 606, 668, 684]} side="right" />
@@ -90,7 +81,7 @@ export function Chapter03FlavorNebulas() {
   );
 }
 
-/** A restrained 01 / 02 / 03 progress index, bottom-right. */
+/** Flavor names with a restrained active-state indicator, bottom-right. */
 function MomentTicks() {
   const visible = useBlockAt([440, 458, 796, 816], 10);
   const active = [
